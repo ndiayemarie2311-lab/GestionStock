@@ -147,13 +147,6 @@ async function bootApp(user) {
 
   showApp();
 
-  // Afficher loading sur toutes les pages
-  document.getElementById('page-dashboard').innerHTML =
-    `<div style="text-align:center;padding:60px;color:var(--text2);">
-       <div style="font-size:32px;margin-bottom:12px;">⏳</div>
-       <div style="font-size:14px;">Chargement des données...</div>
-     </div>`;
-
   // Charger toutes les données
   await charger();
 
@@ -162,8 +155,7 @@ async function bootApp(user) {
     await initDemoData();
   }
 
-  // Restaurer et afficher dashboard
-  document.getElementById('page-dashboard').innerHTML = '';
+  // Afficher dashboard
   renderDashboard();
   updateBadges();
 }

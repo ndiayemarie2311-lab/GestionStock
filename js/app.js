@@ -1,7 +1,7 @@
 // ===== NAVIGATION =====
 let currentPage = 'dashboard';
 
-function showPage(id) {
+async function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
 
@@ -12,7 +12,7 @@ function showPage(id) {
 
   currentPage = id;
 
-   const titles = {
+  const titles = {
     dashboard    : 'Dashboard',
     produits     : 'Produits',
     mouvements   : 'Mouvements',
@@ -26,6 +26,9 @@ function showPage(id) {
 
   document.getElementById('topbar-title').textContent = titles[id] || id;
 
+  // Recharger les données depuis Supabase avant d'afficher
+  await charger();
+
   if (id === 'dashboard')    renderDashboard();
   if (id === 'produits')     renderProduits();
   if (id === 'mouvements')   renderMouvements();
@@ -34,7 +37,9 @@ function showPage(id) {
   if (id === 'categories')   renderCategories();
   if (id === 'historique')   renderHistorique();
   if (id === 'rapport')      renderRapport();
-  if (id === 'utilisateurs') renderUtilisateurs().catch(console.error);
+  if (id === 'utilisateurs') await renderUtilisateurs();
+
+  updateBadges();
 }
 
 function gotoPage(id) {
