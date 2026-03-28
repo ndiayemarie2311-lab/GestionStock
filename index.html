@@ -728,6 +728,35 @@
   </div>
 </div>
 
+<!-- Modal Categorie -->
+<div class="overlay" id="modal-categorie">
+  <div class="modal">
+    <div class="modal-title" id="modal-cat-title">Nouvelle catégorie</div>
+    <input type="hidden" id="cat-id"/>
+    <div class="fg">
+      <label>Nom de la catégorie *</label>
+      <input id="cat-nom" placeholder="Ex: Électroménager"/>
+    </div>
+    <div class="frow2">
+      <div class="fg">
+        <label>Emoji</label>
+        <input id="cat-emoji" placeholder="Ex: 🏠" maxlength="2"/>
+      </div>
+      <div class="fg">
+        <label>Couleur</label>
+        <input id="cat-couleur" type="color" value="#3b82f6"
+               style="height:42px;padding:4px;cursor:pointer;"/>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"
+              onclick="closeModal('modal-categorie')">Annuler</button>
+      <button class="btn btn-primary"
+              onclick="saveCategorie()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal Fournisseur -->
 <div class="overlay" id="modal-fournisseur">
   <div class="modal">
@@ -773,12 +802,13 @@
 <div class="toast" id="toast"></div>
 
 <!-- JS -->
+<!-- JS -->
 <script src="js/config.js"></script>
 <script src="js/state.js"></script>
-<script src="js/auth.js"></script>
 <script src="js/utils.js"></script>
 <script src="js/render.js"></script>
 <script src="js/app.js"></script>
+<script src="js/auth.js"></script>
 
 </body>
 </html>

@@ -235,20 +235,6 @@ function renderDashboard() {
     cats[p.cat] = (cats[p.cat] || 0) + 1;
   });
 
-  document.getElementById('dash-categories').innerHTML =
-    Object.entries(cats).map(([cat, count]) => `
-      <div style="background:var(--bg3);border:1px solid var(--border);
-                  border-radius:var(--rsm);padding:12px 16px;
-                  display:flex;align-items:center;gap:10px;">
-        <span style="font-size:24px;">${catEmoji(cat)}</span>
-        <div>
-          <div style="font-size:13px;font-weight:600;">${cat}</div>
-          <div style="font-size:11px;color:var(--text2);">
-            ${count} produit${count > 1 ? 's' : ''}
-          </div>
-        </div>
-      </div>`
-    ).join('') ||
     '<div style="color:var(--text2);font-size:13px;">Aucun produit</div>';
 
   updateBadges();

@@ -439,5 +439,4 @@ function openEditProduit(id) {
   document.getElementById('p-desc').value  = p.description || '';
   document.getElementById('modal-produit-title').textContent = 'Modifier le produit';
 
-  document.getElementById('modal-produit').classList.add('open');
-}
+  document.getElementById('modal-produit').classList.add('open');}
