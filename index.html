@@ -11,6 +11,9 @@
   <!-- Supabase -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>   
+
   <!-- CSS -->
   <link rel="stylesheet" href="css/variables.css"/>
   <link rel="stylesheet" href="css/layout.css"/>
@@ -283,70 +286,85 @@
       <div class="content">
 
         <!-- DASHBOARD -->
-        <div class="page active" id="page-dashboard">
-          <div class="sh">
-            <div>
-              <div class="sh-title">Tableau de bord</div>
-              <div class="sh-sub" id="dash-date"></div>
-            </div>
-            <button class="btn btn-primary"
-                    onclick="openModal('modal-produit')">+ Nouveau produit</button>
-          </div>
+<div class="page active" id="page-dashboard">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Tableau de bord</div>
+      <div class="sh-sub" id="dash-date"></div>
+    </div>
+    <button class="btn btn-primary"
+            onclick="openModal('modal-produit')">+ Nouveau produit</button>
+  </div>
 
-          <div class="stats-row">
-            <div class="stat-card blue">
-              <div class="sc-icon">📦</div>
-              <div class="sc-label">Total produits</div>
-              <div class="sc-val" id="ds-total">0</div>
-              <div class="sc-sub">références actives</div>
-            </div>
-            <div class="stat-card green">
-              <div class="sc-icon">✅</div>
-              <div class="sc-label">En stock</div>
-              <div class="sc-val" id="ds-ok">0</div>
-              <div class="sc-sub">niveau normal</div>
-            </div>
-            <div class="stat-card orange">
-              <div class="sc-icon">⚠️</div>
-              <div class="sc-label">Stock faible</div>
-              <div class="sc-val" id="ds-faible">0</div>
-              <div class="sc-sub">sous le seuil</div>
-            </div>
-            <div class="stat-card red">
-              <div class="sc-icon">🚨</div>
-              <div class="sc-label">Rupture</div>
-              <div class="sc-val" id="ds-rupture">0</div>
-              <div class="sc-sub">stock épuisé</div>
-            </div>
-          </div>
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card blue">
+      <div class="sc-icon">📦</div>
+      <div class="sc-label">Total produits</div>
+      <div class="sc-val" id="ds-total">0</div>
+      <div class="sc-sub">références actives</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-icon">✅</div>
+      <div class="sc-label">En stock</div>
+      <div class="sc-val" id="ds-ok">0</div>
+      <div class="sc-sub">niveau normal</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-icon">⚠️</div>
+      <div class="sc-label">Stock faible</div>
+      <div class="sc-val" id="ds-faible">0</div>
+      <div class="sc-sub">sous le seuil</div>
+    </div>
+    <div class="stat-card red">
+      <div class="sc-icon">🚨</div>
+      <div class="sc-label">Rupture</div>
+      <div class="sc-val" id="ds-rupture">0</div>
+      <div class="sc-sub">stock épuisé</div>
+    </div>
+  </div>
 
-          <div class="grid2">
-            <div class="card">
-              <div class="card-header">
-                <div class="card-title">Alertes récentes</div>
-                <button class="btn btn-ghost btn-sm"
-                        onclick="showPage('alertes')">Voir tout →</button>
-              </div>
-              <div class="card-body" id="dash-alertes"></div>
-            </div>
-            <div class="card">
-              <div class="card-header">
-                <div class="card-title">Mouvements récents</div>
-                <button class="btn btn-ghost btn-sm"
-                        onclick="showPage('mouvements')">Voir tout →</button>
-              </div>
-              <div class="card-body" id="dash-mouvements"></div>
-            </div>
-          </div>
+  <!-- Graphiques ligne 1 -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📈 Mouvements (7 derniers jours)</div>
+      </div>
+      <div class="card-body">
+        <canvas id="chart-mouvements" height="200"></canvas>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🍩 Répartition par catégorie</div>
+      </div>
+      <div class="card-body">
+        <canvas id="chart-categories" height="200"></canvas>
+      </div>
+    </div>
+  </div>
 
-          <div class="card">
-            <div class="card-header">
-              <div class="card-title">Répartition par catégorie</div>
-            </div>
-            <div class="card-body" id="dash-categories"
-                 style="display:flex;flex-wrap:wrap;gap:12px;"></div>
-          </div>
-        </div>
+  <!-- Graphiques ligne 2 -->
+  <div class="grid2">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔔 Alertes récentes</div>
+        <button class="btn btn-ghost btn-sm"
+                onclick="showPage('alertes')">Voir tout →</button>
+      </div>
+      <div class="card-body" id="dash-alertes"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔄 Mouvements récents</div>
+        <button class="btn btn-ghost btn-sm"
+                onclick="showPage('mouvements')">Voir tout →</button>
+      </div>
+      <div class="card-body" id="dash-mouvements"></div>
+    </div>
+  </div>
+
+</div>
 
         <!-- PRODUITS -->
         <div class="page" id="page-produits">

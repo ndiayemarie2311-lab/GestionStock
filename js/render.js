@@ -1,5 +1,143 @@
-// ===== RENDER DASHBOARD =====
+// ===== GRAPHIQUES =====
+let chartMouvements = null;
+let chartCategories = null;
+
+function renderChartMouvements() {
+  const ctx = document.getElementById('chart-mouvements');
+  if (!ctx) return;
+
+  // 7 derniers jours
+  const jours = [];
+  const entrees = [];
+  const sorties = [];
+
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const dateStr = d.toISOString().split('T')[0];
+    const label   = d.toLocaleDateString('fr-FR', {
+      day  : '2-digit',
+      month: 'short'
+    });
+
+    jours.push(label);
+
+    const mvtsDuJour = state.mouvements.filter(m => m.date === dateStr);
+    entrees.push(mvtsDuJour
+      .filter(m => m.type === 'Entrée')
+      .reduce((sum, m) => sum + m.qte, 0));
+    sorties.push(mvtsDuJour
+      .filter(m => m.type === 'Sortie')
+      .reduce((sum, m) => sum + m.qte, 0));
+  }
+
+  // Détruire l'ancien graphique si existant
+  if (chartMouvements) chartMouvements.destroy();
+
+  chartMouvements = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels  : jours,
+      datasets: [
+        {
+          label          : 'Entrées',
+          data           : entrees,
+          backgroundColor: 'rgba(34, 197, 94, 0.7)',
+          borderColor    : 'rgba(34, 197, 94, 1)',
+          borderWidth    : 1,
+          borderRadius   : 4
+        },
+        {
+          label          : 'Sorties',
+          data           : sorties,
+          backgroundColor: 'rgba(239, 68, 68, 0.7)',
+          borderColor    : 'rgba(239, 68, 68, 1)',
+          borderWidth    : 1,
+          borderRadius   : 4
+        }
+      ]
+    },
+    options: {
+      responsive       : true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          labels: { color: '#8b919e', font: { size: 12 } }
+        }
+      },
+      scales: {
+        x: {
+          ticks : { color: '#8b919e' },
+          grid  : { color: 'rgba(255,255,255,0.05)' }
+        },
+        y: {
+          ticks : { color: '#8b919e' },
+          grid  : { color: 'rgba(255,255,255,0.05)' },
+          beginAtZero: true
+        }
+      }
+    }
+  });
+}
+
+function renderChartCategories() {
+  const ctx = document.getElementById('chart-categories');
+  if (!ctx) return;
+
+  // Compter produits par catégorie
+  const cats  = {};
+  state.produits.forEach(p => {
+    cats[p.cat] = (cats[p.cat] || 0) + 1;
+  });
+
+  const labels = Object.keys(cats);
+  const values = Object.values(cats);
+
+  const colors = [
+    'rgba(59,  130, 246, 0.8)',
+    'rgba(34,  197, 94,  0.8)',
+    'rgba(249, 115, 22,  0.8)',
+    'rgba(239, 68,  68,  0.8)',
+    'rgba(168, 85,  247, 0.8)',
+    'rgba(234, 179, 8,   0.8)'
+  ];
+
+  // Détruire l'ancien graphique si existant
+  if (chartCategories) chartCategories.destroy();
+
+  chartCategories = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels  : labels,
+      datasets: [{
+        data           : values,
+        backgroundColor: colors,
+        borderColor    : 'rgba(19, 22, 27, 1)',
+        borderWidth    : 3
+      }]
+    },
+    options: {
+      responsive        : true,
+      maintainAspectRatio: true,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels  : {
+            color    : '#8b919e',
+            font     : { size: 11 },
+            padding  : 16,
+            boxWidth : 12
+          }
+        }
+      }
+    }
+  });
+}
+
+// ===== RENDER DASHBOARD ======
 function renderDashboard() {
+  renderChartMouvements();
+  renderChartCategories();
   const total   = state.produits.length;
   const ok      = state.produits.filter(p => p.stock > p.seuil).length;
   const faible  = state.produits.filter(p => p.stock > 0 && p.stock <= p.seuil).length;
