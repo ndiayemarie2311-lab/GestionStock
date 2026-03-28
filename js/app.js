@@ -12,12 +12,15 @@ function showPage(id) {
 
   currentPage = id;
 
-  const titles = {
+   const titles = {
     dashboard    : 'Dashboard',
     produits     : 'Produits',
     mouvements   : 'Mouvements',
     fournisseurs : 'Fournisseurs',
     alertes      : 'Alertes',
+    categories   : 'Catégories',
+    historique   : 'Historique',
+    rapport      : 'Rapport & Impression',
     utilisateurs : 'Utilisateurs'
   };
 
@@ -30,7 +33,9 @@ function showPage(id) {
   if (id === 'alertes')      renderAlertes();
   if (id === 'categories')   renderCategories();
   if (id === 'historique')   renderHistorique();
-  if (id === 'rapport')      renderRapport();
+  if (id === 'rapport') {
+    setTimeout(() => renderRapport(), 100);
+  }  
   if (id === 'utilisateurs') renderUtilisateurs().catch(console.error);
 }
 
