@@ -43,6 +43,12 @@ function getProduit(id) {
   return state.produits.find(p => p.id === id);
 }
 
+// ===== TROUVER FOURNISSEUR =====
+function getFourn(id) {
+  if (!id) return null;
+  return state.fournisseurs.find(f => f.id === id);
+}
+
 // ===== TOAST =====
 function toast(msg, type = 'success') {
   const t = document.getElementById('toast');
