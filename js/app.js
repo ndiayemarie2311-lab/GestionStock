@@ -39,9 +39,9 @@ function gotoPage(id) {
 }
 
 // ===== CRUD PRODUITS =====
-function saveProduit() {
-  const nom  = document.getElementById('p-nom').value.trim();
-  const cat  = document.getElementById('p-cat').value;
+async function saveProduit() {
+  const nom   = document.getElementById('p-nom').value.trim();
+  const cat   = document.getElementById('p-cat').value;
   const stock = parseInt(document.getElementById('p-stock').value) || 0;
   const seuil = parseInt(document.getElementById('p-seuil').value) || 0;
 
@@ -53,26 +53,42 @@ function saveProduit() {
   const id   = document.getElementById('p-id').value;
   const data = {
     nom,
-    ref      : document.getElementById('p-ref').value.trim(),
+    ref         : document.getElementById('p-ref').value.trim(),
     cat,
-    fourniId : document.getElementById('p-fourn').value,
+    fourn_id    : document.getElementById('p-fourn').value || null,
     stock,
     seuil,
-    prix     : parseInt(document.getElementById('p-prix').value)  || 0,
-    unite    : document.getElementById('p-unite').value.trim(),
-    desc     : document.getElementById('p-desc').value.trim()
+    prix        : parseInt(document.getElementById('p-prix').value)  || 0,
+    unite       : document.getElementById('p-unite').value.trim(),
+    description : document.getElementById('p-desc').value.trim()
   };
 
   if (id) {
+    // Modification
+    const { error } = await supa
+      .from('produits')
+      .update(data)
+      .eq('id', id);
+
+    if (error) { toast('Erreur modification', 'error'); return; }
+
     const idx = state.produits.findIndex(p => p.id === id);
     if (idx > -1) state.produits[idx] = { ...state.produits[idx], ...data };
     toast('Produit modifié ✓');
+
   } else {
-    state.produits.push({ id: uid(), ...data });
+    // Ajout
+    const { data: inserted, error } = await supa
+      .from('produits')
+      .insert([{ ...data, user_id: state.currentUser.id }])
+      .select();
+
+    if (error) { toast('Erreur ajout', 'error'); return; }
+
+    state.produits.push(inserted[0]);
     toast('Produit ajouté ✓');
   }
 
-  sauvegarder();
   closeModal('modal-produit');
   resetProduitForm();
   renderProduits();
@@ -94,23 +110,30 @@ function editProduit(id) {
   populateFourniSelect();
   document.getElementById('p-id').value    = p.id;
   document.getElementById('p-nom').value   = p.nom;
-  document.getElementById('p-ref').value   = p.ref    || '';
+  document.getElementById('p-ref').value   = p.ref         || '';
   document.getElementById('p-cat').value   = p.cat;
-  document.getElementById('p-fourn').value = p.fourniId || '';
+  document.getElementById('p-fourn').value = p.fourn_id    || '';
   document.getElementById('p-stock').value = p.stock;
   document.getElementById('p-seuil').value = p.seuil;
-  document.getElementById('p-prix').value  = p.prix   || '';
-  document.getElementById('p-unite').value = p.unite  || '';
-  document.getElementById('p-desc').value  = p.desc   || '';
+  document.getElementById('p-prix').value  = p.prix        || '';
+  document.getElementById('p-unite').value = p.unite       || '';
+  document.getElementById('p-desc').value  = p.description || '';
   document.getElementById('modal-produit-title').textContent = 'Modifier le produit';
 
   openModal('modal-produit');
 }
 
-function deleteProduit(id) {
+async function deleteProduit(id) {
   if (!confirm('Supprimer ce produit ?')) return;
+
+  const { error } = await supa
+    .from('produits')
+    .delete()
+    .eq('id', id);
+
+  if (error) { toast('Erreur suppression', 'error'); return; }
+
   state.produits = state.produits.filter(p => p.id !== id);
-  sauvegarder();
   renderProduits();
   updateBadges();
   renderDashboard();
@@ -118,7 +141,7 @@ function deleteProduit(id) {
 }
 
 // ===== CRUD MOUVEMENTS =====
-function saveMouvement() {
+async function saveMouvement() {
   const produitId = document.getElementById('m-produit').value;
   const type      = document.getElementById('m-type').value;
   const qte       = parseInt(document.getElementById('m-qte').value) || 0;
@@ -136,20 +159,38 @@ function saveMouvement() {
     return;
   }
 
-  p.stock = type === 'Entrée' ? p.stock + qte : p.stock - qte;
+  // Nouveau stock
+  const nouveauStock = type === 'Entrée' ? p.stock + qte : p.stock - qte;
 
-  state.mouvements.push({
-    id        : uid(),
-    produitId,
-    type,
-    qte,
-    motif : document.getElementById('m-motif').value.trim(),
-    date  : document.getElementById('m-date').value ||
-            new Date().toISOString().split('T')[0],
-    user  : state.currentUser?.prenom || 'Admin'
-  });
+  // Mettre à jour le stock du produit
+  const { error: ep } = await supa
+    .from('produits')
+    .update({ stock: nouveauStock })
+    .eq('id', produitId);
 
-  sauvegarder();
+  if (ep) { toast('Erreur mise à jour stock', 'error'); return; }
+
+  // Enregistrer le mouvement
+  const { data: mvt, error: em } = await supa
+    .from('mouvements')
+    .insert([{
+      user_id   : state.currentUser.id,
+      produit_id: produitId,
+      type,
+      qte,
+      motif     : document.getElementById('m-motif').value.trim(),
+      date      : document.getElementById('m-date').value ||
+                  new Date().toISOString().split('T')[0],
+      operateur : state.currentUser?.prenom || 'Admin'
+    }])
+    .select();
+
+  if (em) { toast('Erreur enregistrement mouvement', 'error'); return; }
+
+  // Mettre à jour le state
+  p.stock = nouveauStock;
+  state.mouvements.push(mvt[0]);
+
   closeModal('modal-mouvement');
   document.getElementById('m-qte').value   = '';
   document.getElementById('m-motif').value = '';
@@ -157,7 +198,7 @@ function saveMouvement() {
   renderProduits();
   updateBadges();
   renderDashboard();
-  toast(`${type} enregistrée — Stock: ${p.stock} ${p.unite || ''}`);
+  toast(`${type} enregistrée — Stock: ${nouveauStock} ${p.unite || ''}`);
 }
 
 function quickEntree(id) {
@@ -168,7 +209,7 @@ function quickEntree(id) {
 }
 
 // ===== CRUD FOURNISSEURS =====
-function saveFournisseur() {
+async function saveFournisseur() {
   const nom = document.getElementById('f-nom').value.trim();
   if (!nom) {
     toast('Nom requis', 'error');
@@ -186,15 +227,29 @@ function saveFournisseur() {
   };
 
   if (id) {
+    const { error } = await supa
+      .from('fournisseurs')
+      .update(data)
+      .eq('id', id);
+
+    if (error) { toast('Erreur modification', 'error'); return; }
+
     const idx = state.fournisseurs.findIndex(f => f.id === id);
     if (idx > -1) state.fournisseurs[idx] = { ...state.fournisseurs[idx], ...data };
     toast('Fournisseur modifié ✓');
+
   } else {
-    state.fournisseurs.push({ id: uid(), ...data });
+    const { data: inserted, error } = await supa
+      .from('fournisseurs')
+      .insert([{ ...data, user_id: state.currentUser.id }])
+      .select();
+
+    if (error) { toast('Erreur ajout', 'error'); return; }
+
+    state.fournisseurs.push(inserted[0]);
     toast('Fournisseur ajouté ✓');
   }
 
-  sauvegarder();
   closeModal('modal-fournisseur');
   resetFournisseurForm();
   renderFournisseurs();
@@ -220,161 +275,17 @@ function editFourn(id) {
   openModal('modal-fournisseur');
 }
 
-function deleteFourn(id) {
+async function deleteFourn(id) {
   if (!confirm('Supprimer ce fournisseur ?')) return;
+
+  const { error } = await supa
+    .from('fournisseurs')
+    .delete()
+    .eq('id', id);
+
+  if (error) { toast('Erreur suppression', 'error'); return; }
+
   state.fournisseurs = state.fournisseurs.filter(f => f.id !== id);
-  sauvegarder();
   renderFournisseurs();
   toast('Fournisseur supprimé');
 }
-
-// ===== AUTH =====
-function switchTab(tab) {
-  document.getElementById('tab-login').classList.toggle('active', tab === 'login');
-  document.getElementById('tab-register').classList.toggle('active', tab === 'register');
-  document.getElementById('form-login').style.display    = tab === 'login'    ? 'block' : 'none';
-  document.getElementById('form-register').style.display = tab === 'register' ? 'block' : 'none';
-  document.getElementById('auth-error').style.display    = 'none';
-}
-
-function showAuthError(msg) {
-  const e = document.getElementById('auth-error');
-  e.textContent  = msg;
-  e.style.display = 'block';
-}
-
-async function doLogin() {
-  const email = document.getElementById('login-email').value.trim();
-  const pwd   = document.getElementById('login-pwd').value;
-
-  if (!email || !pwd) {
-    showAuthError('Veuillez remplir tous les champs.');
-    return;
-  }
-
-  const btn = document.getElementById('btn-login');
-  btn.disabled    = true;
-  btn.textContent = 'Connexion...';
-  document.getElementById('auth-error').style.display = 'none';
-
-  const { data, error } = await supa.auth.signInWithPassword({
-    email,
-    password: pwd
-  });
-
-  btn.disabled    = false;
-  btn.textContent = 'Se connecter';
-
-  if (error) {
-    showAuthError('Email ou mot de passe incorrect.');
-    return;
-  }
-
-  const meta = data.user.user_metadata || {};
-  bootApp({
-    id    : data.user.id,
-    email : data.user.email,
-    prenom: meta.prenom || '',
-    nom   : meta.nom    || ''
-  });
-}
-
-async function doRegister() {
-  const prenom = document.getElementById('reg-prenom').value.trim();
-  const nom    = document.getElementById('reg-nom').value.trim();
-  const email  = document.getElementById('reg-email').value.trim();
-  const pwd    = document.getElementById('reg-pwd').value;
-
-  if (!prenom || !nom || !email || !pwd) {
-    showAuthError('Tous les champs sont obligatoires.');
-    return;
-  }
-
-  if (pwd.length < 6) {
-    showAuthError('Mot de passe : minimum 6 caractères.');
-    return;
-  }
-
-  const btn = document.getElementById('btn-register');
-  btn.disabled    = true;
-  btn.textContent = 'Création...';
-  document.getElementById('auth-error').style.display = 'none';
-
-  const { data, error } = await supa.auth.signUp({
-    email,
-    password: pwd,
-    options : { data: { prenom, nom } }
-  });
-
-  btn.disabled    = false;
-  btn.textContent = 'Créer mon compte';
-
-  if (error) {
-    showAuthError(error.message);
-    return;
-  }
-
-  if (data.session) {
-    bootApp({
-      id    : data.user.id,
-      email : data.user.email,
-      prenom,
-      nom
-    });
-  } else {
-    showAuthError('✅ Compte créé ! Vérifiez votre email.');
-    switchTab('login');
-  }
-}
-
-async function doLogout() {
-  await supa.auth.signOut();
-  document.getElementById('auth-screen').style.display = 'flex';
-  document.getElementById('app-screen').style.display  = 'none';
-}
-
-// ===== BOOT APP =====
-function bootApp(user) {
-  state.currentUser = user;
-
-  const prenom = user.prenom || user.email.split('@')[0];
-  const nom    = user.nom    || '';
-
-  document.getElementById('user-name').textContent =
-    (prenom + ' ' + nom).trim();
-  document.getElementById('user-av').textContent =
-    (prenom[0] || '').toUpperCase() + (nom[0] || '').toUpperCase();
-
-  document.getElementById('auth-screen').style.display = 'none';
-  document.getElementById('app-screen').style.display  = 'block';
-
-  const loaded = charger();
-  if (!loaded || !state.produits.length) initDemoData();
-
-  renderDashboard();
-  updateBadges();
-}
-
-// ===== INITIALISATION =====
-window.addEventListener('load', async () => {
-  const { data: { session } } = await supa.auth.getSession();
-
-  if (session && session.user) {
-    const meta = session.user.user_metadata || {};
-    bootApp({
-      id    : session.user.id,
-      email : session.user.email,
-      prenom: meta.prenom || '',
-      nom   : meta.nom    || ''
-    });
-  } else {
-    document.getElementById('auth-screen').style.display = 'flex';
-  }
-
-  supa.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
-      document.getElementById('auth-screen').style.display = 'flex';
-      document.getElementById('app-screen').style.display  = 'none';
-    }
-  });
-});

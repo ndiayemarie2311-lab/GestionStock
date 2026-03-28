@@ -66,7 +66,7 @@ async function doLogin() {
   }
 
   const meta = data.user.user_metadata || {};
-  bootApp({
+  await bootApp({
     id    : data.user.id,
     email : data.user.email,
     prenom: meta.prenom || '',
@@ -111,7 +111,7 @@ async function doRegister() {
   }
 
   if (data.session) {
-    bootApp({
+    await bootApp({
       id    : data.user.id,
       email : data.user.email,
       prenom,
@@ -126,11 +126,15 @@ async function doRegister() {
 // ===== DÉCONNEXION =====
 async function doLogout() {
   await supa.auth.signOut();
+  state.produits     = [];
+  state.mouvements   = [];
+  state.fournisseurs = [];
+  state.currentUser  = null;
   showAuth();
 }
 
 // ===== BOOT APP =====
-function bootApp(user) {
+async function bootApp(user) {
   state.currentUser = user;
 
   const prenom = user.prenom || user.email.split('@')[0];
@@ -143,9 +147,23 @@ function bootApp(user) {
 
   showApp();
 
-  const loaded = charger();
-  if (!loaded || !state.produits.length) initDemoData();
+  // Afficher un loader pendant le chargement
+  document.getElementById('page-dashboard').innerHTML =
+    `<div style="text-align:center;padding:60px;color:var(--text2);">
+       <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+       <div>Chargement des données...</div>
+     </div>`;
 
+  // Charger les données depuis Supabase
+  await charger();
+
+  // Si pas de données, insérer les données demo
+  if (!state.produits.length) {
+    await initDemoData();
+  }
+
+  // Restaurer le dashboard et afficher
+  document.getElementById('page-dashboard').innerHTML = '';
   renderDashboard();
   updateBadges();
 }
@@ -156,7 +174,7 @@ window.addEventListener('load', async () => {
 
   if (session && session.user) {
     const meta = session.user.user_metadata || {};
-    bootApp({
+    await bootApp({
       id    : session.user.id,
       email : session.user.email,
       prenom: meta.prenom || '',
