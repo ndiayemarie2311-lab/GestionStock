@@ -16,7 +16,7 @@ function fmtDate(d) {
 
 // ===== FORMAT PRIX =====
 function fmtPrix(n) {
-  return Number(n || 0).toLocaleString('fr-FR') + ' F';
+  return Number(n || 0).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' F';
 }
 
 // ===== STATUT STOCK =====

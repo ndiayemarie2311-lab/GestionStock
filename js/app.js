@@ -673,9 +673,10 @@ function exportFicheProduit(id) {
   doc.setFillColor(26, 30, 37);
   doc.roundedRect(14, y, 182, 45, 3, 3, 'F');
 
-  // Emoji catégorie
-  doc.setFontSize(28);
-  doc.text(catEmoji(p.cat), 22, y + 18);
+  // Catégorie icône (texte à la place de l'emoji)
+  doc.setFontSize(10);
+  doc.setTextColor(59, 130, 246);
+  doc.text(`[ ${p.cat} ]`, 22, y + 18);
 
   // Nom produit
   doc.setFontSize(16);
@@ -778,8 +779,11 @@ function exportFicheProduit(id) {
   y = doc.lastAutoTable.finalY + 10;
 
   // ===== HISTORIQUE MOUVEMENTS =====
-  const mvtsProduit = state.mouvements
-    .filter(m => (m.produit_id || m.produitId) === id)
+ const mvtsProduit = [...state.mouvements]
+    .filter(m => {
+      const mid = m.produit_id || m.produitId || '';
+      return mid.toString() === id.toString();
+    })
     .reverse()
     .slice(0, 10);
 
