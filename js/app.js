@@ -629,3 +629,210 @@ function exportHistoriquePDF() {
   doc.save(`StockPro_Historique_${new Date().toISOString().split('T')[0]}.pdf`);
   toast('Export PDF téléchargé ✓');
 }
+
+// ===== EXPORT FICHE PRODUIT PDF =====
+function exportFicheProduit(id) {
+  const p = getProduit(id);
+  if (!p) return;
+
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const fourn  = getFourn(p.fourn_id);
+  const s      = stockStatut(p);
+  const valeur = p.stock * p.prix;
+
+  // ===== HEADER =====
+  // Fond header
+  doc.setFillColor(13, 15, 18);
+  doc.rect(0, 0, 210, 40, 'F');
+
+  // Nom app
+  doc.setFontSize(10);
+  doc.setTextColor(59, 130, 246);
+  doc.text('STOCKPRO', 14, 12);
+
+  // Titre fiche
+  doc.setFontSize(20);
+  doc.setTextColor(232, 234, 240);
+  doc.text('Fiche Produit', 14, 24);
+
+  // Date génération
+  doc.setFontSize(9);
+  doc.setTextColor(139, 145, 158);
+  doc.text(
+    `Généré le ${new Date().toLocaleDateString('fr-FR', {
+      day: '2-digit', month: 'long', year: 'numeric'
+    })}`,
+    14, 33
+  );
+
+  // ===== IDENTITÉ PRODUIT =====
+  let y = 50;
+
+  // Fond section
+  doc.setFillColor(26, 30, 37);
+  doc.roundedRect(14, y, 182, 45, 3, 3, 'F');
+
+  // Emoji catégorie
+  doc.setFontSize(28);
+  doc.text(catEmoji(p.cat), 22, y + 18);
+
+  // Nom produit
+  doc.setFontSize(16);
+  doc.setTextColor(232, 234, 240);
+  doc.text(p.nom, 45, y + 12);
+
+  // Référence
+  doc.setFontSize(10);
+  doc.setTextColor(139, 145, 158);
+  doc.text(`Réf: ${p.ref || '—'}`, 45, y + 20);
+
+  // Catégorie
+  doc.text(`${p.cat}`, 45, y + 28);
+
+  // Badge statut
+  const couleurStatut = s.label === 'Normal'
+    ? [34, 197, 94]
+    : s.label === 'Faible'
+      ? [249, 115, 22]
+      : [239, 68, 68];
+
+  doc.setFillColor(...couleurStatut);
+  doc.roundedRect(140, y + 8, 40, 10, 2, 2, 'F');
+  doc.setFontSize(9);
+  doc.setTextColor(255, 255, 255);
+  doc.text(s.label, 160, y + 15, { align: 'center' });
+
+  y += 55;
+
+  // ===== STATS PRODUIT =====
+  const stats = [
+    { label: 'Stock actuel',    val: `${p.stock} ${p.unite || ''}`, color: couleurStatut },
+    { label: 'Seuil alerte',   val: `${p.seuil} ${p.unite || ''}`, color: [139, 145, 158] },
+    { label: 'Prix unitaire',  val: fmtPrix(p.prix),               color: [59, 130, 246] },
+    { label: 'Valeur stock',   val: fmtPrix(valeur),               color: [168, 85, 247] }
+  ];
+
+  const cardW = 42;
+  const cardH = 28;
+  const gap   = 4;
+
+  stats.forEach((st, i) => {
+    const x = 14 + i * (cardW + gap);
+    doc.setFillColor(26, 30, 37);
+    doc.roundedRect(x, y, cardW, cardH, 2, 2, 'F');
+
+    // Trait couleur en haut
+    doc.setFillColor(...st.color);
+    doc.rect(x, y, cardW, 2, 'F');
+
+    // Label
+    doc.setFontSize(7);
+    doc.setTextColor(139, 145, 158);
+    doc.text(st.label.toUpperCase(), x + cardW/2, y + 10, { align: 'center' });
+
+    // Valeur
+    doc.setFontSize(11);
+    doc.setTextColor(...st.color);
+    doc.text(st.val, x + cardW/2, y + 21, { align: 'center' });
+  });
+
+  y += cardH + 10;
+
+  // ===== INFOS DÉTAILLÉES =====
+  doc.setFontSize(12);
+  doc.setTextColor(59, 130, 246);
+  doc.text('Informations détaillées', 14, y);
+  y += 6;
+
+  doc.autoTable({
+    startY    : y,
+    head      : [['Champ', 'Valeur']],
+    body      : [
+      ['Nom du produit',  p.nom],
+      ['Référence',       p.ref         || '—'],
+      ['Catégorie',       p.cat],
+      ['Unité de mesure', p.unite        || '—'],
+      ['Prix unitaire',   fmtPrix(p.prix)],
+      ['Stock actuel',    `${p.stock} ${p.unite || ''}`],
+      ['Seuil d\'alerte', `${p.seuil} ${p.unite || ''}`],
+      ['Valeur totale',   fmtPrix(valeur)],
+      ['Fournisseur',     fourn ? fourn.nom : '—'],
+      ['Contact fourn.',  fourn ? fourn.tel || '—' : '—'],
+      ['Description',     p.description  || '—'],
+      ['Statut stock',    s.label]
+    ],
+    styles          : { fontSize: 10, cellPadding: 5 },
+    headStyles      : {
+      fillColor : [59, 130, 246],
+      textColor : 255,
+      fontStyle : 'bold'
+    },
+    alternateRowStyles: { fillColor: [245, 245, 250] },
+    columnStyles    : {
+      0: { fontStyle: 'bold', cellWidth: 55, textColor: [80, 80, 80] },
+      1: { cellWidth: 125 }
+    }
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  // ===== HISTORIQUE MOUVEMENTS =====
+  const mvtsProduit = state.mouvements
+    .filter(m => (m.produit_id || m.produitId) === id)
+    .reverse()
+    .slice(0, 10);
+
+  if (mvtsProduit.length) {
+    doc.setFontSize(12);
+    doc.setTextColor(59, 130, 246);
+    doc.text('Historique des mouvements (10 derniers)', 14, y);
+    y += 4;
+
+    doc.autoTable({
+      startY    : y,
+      head      : [['Date', 'Type', 'Quantité', 'Motif', 'Opérateur']],
+      body      : mvtsProduit.map(m => [
+        fmtDate(m.date),
+        m.type,
+        `${m.type === 'Entrée' ? '+' : '−'}${m.qte} ${p.unite || ''}`,
+        m.motif    || '—',
+        m.operateur|| '—'
+      ]),
+      styles    : { fontSize: 9, cellPadding: 4 },
+      headStyles: {
+        fillColor : [34, 34, 46],
+        textColor : [139, 145, 158],
+        fontStyle : 'bold'
+      },
+      alternateRowStyles: { fillColor: [245, 245, 250] },
+      didDrawCell: (data) => {
+        if (data.column.index === 1 && data.cell.section === 'body') {
+          const isEntree = data.cell.raw === 'Entrée';
+          doc.setTextColor(
+            isEntree ? 34  : 239,
+            isEntree ? 197 : 68,
+            isEntree ? 94  : 68
+          );
+        }
+      }
+    });
+  }
+
+  // ===== FOOTER =====
+  const pageH = doc.internal.pageSize.height;
+  doc.setFillColor(13, 15, 18);
+  doc.rect(0, pageH - 15, 210, 15, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(85, 94, 110);
+  doc.text('StockPro — Gestion de Stock', 14, pageH - 5);
+  doc.text(
+    `Page 1  |  ${new Date().toLocaleDateString('fr-FR')}`,
+    196, pageH - 5,
+    { align: 'right' }
+  );
+
+  // Sauvegarder
+  doc.save(`StockPro_Fiche_${p.nom.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
+  toast(`Fiche PDF de "${p.nom}" téléchargée ✓`);
+}

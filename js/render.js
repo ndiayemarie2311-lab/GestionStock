@@ -384,10 +384,12 @@ function renderProduits() {
         <td><span class="badge ${s.cls}">${s.label}</span></td>
         <td>
           <div style="display:flex;gap:4px;">
-            <button class="btn btn-ghost btn-sm btn-icon"
-                    onclick="editProduit('${p.id}')" title="Modifier">✏️</button>
-            <button class="btn btn-danger btn-sm btn-icon"
-                    onclick="deleteProduit('${p.id}')" title="Supprimer">🗑️</button>
+           <button class="btn btn-ghost btn-sm btn-icon"
+        onclick="exportFicheProduit('${p.id}')" title="Fiche PDF">📄</button>
+<button class="btn btn-ghost btn-sm btn-icon"
+        onclick="editProduit('${p.id}')" title="Modifier">✏️</button>
+<button class="btn btn-danger btn-sm btn-icon"
+        onclick="deleteProduit('${p.id}')" title="Supprimer">🗑️</button>
           </div>
         </td>
       </tr>`;
