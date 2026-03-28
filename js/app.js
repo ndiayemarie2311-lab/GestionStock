@@ -29,6 +29,7 @@ function showPage(id) {
   if (id === 'fournisseurs') renderFournisseurs();
   if (id === 'alertes')      renderAlertes();
   if (id === 'categories')   renderCategories();
+  if (id === 'historique')   renderHistorique();
   if (id === 'utilisateurs') renderUtilisateurs().catch(console.error);
 }
 
@@ -439,4 +440,13 @@ function openEditProduit(id) {
   document.getElementById('p-desc').value  = p.description || '';
   document.getElementById('modal-produit-title').textContent = 'Modifier le produit';
 
-  document.getElementById('modal-produit').classList.add('open');}
+  document.getElementById('modal-produit').classList.add('open');
+}
+// ===== RESET FILTRES HISTORIQUE =====
+function resetFiltresHistorique() {
+  document.getElementById('hist-search').value     = '';
+  document.getElementById('hist-type').value       = '';
+  document.getElementById('hist-date-debut').value = '';
+  document.getElementById('hist-date-fin').value   = '';
+  renderHistorique();
+}

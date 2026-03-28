@@ -230,8 +230,12 @@
           <span class="ni">📦</span>Produits
         </button>
         <button class="nav-item" id="nav-mouvements"
-                onclick="showPage('mouvements')">
-          <span class="ni">🔄</span>Mouvements
+        onclick="showPage('mouvements')">
+            <span class="ni">🔄</span>Mouvements
+        </button>
+        <button class="nav-item" id="nav-historique"
+                onclick="showPage('historique')">
+            <span class="ni">📋</span>Historique
         </button>
       </div>
 
@@ -505,6 +509,101 @@
             </div>
           </div>
         </div>
+        <!-- HISTORIQUE -->
+<div class="page" id="page-historique">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Historique complet</div>
+      <div class="sh-sub" id="hist-count"></div>
+    </div>
+    <button class="btn btn-primary"
+            onclick="openModal('modal-mouvement')">+ Enregistrer</button>
+  </div>
+
+  <!-- Stats historique -->
+  <div class="stats-row" style="margin-bottom:16px;">
+    <div class="stat-card blue">
+      <div class="sc-icon">🔄</div>
+      <div class="sc-label">Total mouvements</div>
+      <div class="sc-val" id="hist-total">0</div>
+      <div class="sc-sub">depuis le début</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-icon">📥</div>
+      <div class="sc-label">Total entrées</div>
+      <div class="sc-val" id="hist-entrees">0</div>
+      <div class="sc-sub">unités reçues</div>
+    </div>
+    <div class="stat-card red">
+      <div class="sc-icon">📤</div>
+      <div class="sc-label">Total sorties</div>
+      <div class="sc-val" id="hist-sorties">0</div>
+      <div class="sc-sub">unités expédiées</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-icon">📅</div>
+      <div class="sc-label">Ce mois</div>
+      <div class="sc-val" id="hist-mois">0</div>
+      <div class="sc-sub">mouvements</div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div class="card" style="margin-bottom:16px;">
+    <div class="card-body"
+         style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end;">
+      <div class="fg" style="flex:2;min-width:180px;margin-bottom:0;">
+        <label>🔍 Recherche</label>
+        <input id="hist-search" placeholder="Produit, motif, opérateur..."
+               oninput="renderHistorique()"/>
+      </div>
+      <div class="fg" style="flex:1;min-width:130px;margin-bottom:0;">
+        <label>Type</label>
+        <select id="hist-type" onchange="renderHistorique()"
+                style="padding:10px 13px;border-radius:var(--rsm);
+                       border:1px solid var(--border2);background:var(--bg3);
+                       color:var(--text);font-size:13px;font-family:var(--font);
+                       width:100%;">
+          <option value="">Tous</option>
+          <option>Entrée</option>
+          <option>Sortie</option>
+        </select>
+      </div>
+      <div class="fg" style="flex:1;min-width:130px;margin-bottom:0;">
+        <label>Date début</label>
+        <input id="hist-date-debut" type="date" oninput="renderHistorique()"/>
+      </div>
+      <div class="fg" style="flex:1;min-width:130px;margin-bottom:0;">
+        <label>Date fin</label>
+        <input id="hist-date-fin" type="date" oninput="renderHistorique()"/>
+      </div>
+      <button class="btn btn-ghost" onclick="resetFiltresHistorique()"
+              style="margin-bottom:0;">
+        🔄 Réinitialiser
+      </button>
+    </div>
+  </div>
+
+  <!-- Table historique -->
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Produit</th>
+            <th>Catégorie</th>
+            <th>Type</th>
+            <th>Quantité</th>
+            <th>Motif</th>
+            <th>Opérateur</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-historique"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
         <!-- FOURNISSEURS -->
         <div class="page" id="page-fournisseurs">

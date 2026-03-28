@@ -771,3 +771,122 @@ function renderCategories() {
       </div>`;
   }).join('');
 }
+// ===== RENDER HISTORIQUE =====
+function renderHistorique() {
+  const search    = (document.getElementById('hist-search')?.value || '').toLowerCase();
+  const typeF     = document.getElementById('hist-type')?.value || '';
+  const dateDebut = document.getElementById('hist-date-debut')?.value || '';
+  const dateFin   = document.getElementById('hist-date-fin')?.value || '';
+
+  // Stats globales
+  const total    = state.mouvements.length;
+  const entrees  = state.mouvements
+    .filter(m => m.type === 'Entrée')
+    .reduce((sum, m) => sum + m.qte, 0);
+  const sorties  = state.mouvements
+    .filter(m => m.type === 'Sortie')
+    .reduce((sum, m) => sum + m.qte, 0);
+
+  const maintenant    = new Date();
+  const moisActuel    = maintenant.getMonth();
+  const anneeActuelle = maintenant.getFullYear();
+  const mvtsMois      = state.mouvements.filter(m => {
+    const d = new Date(m.date);
+    return d.getMonth()    === moisActuel &&
+           d.getFullYear() === anneeActuelle;
+  }).length;
+
+  document.getElementById('hist-total').textContent   = total;
+  document.getElementById('hist-entrees').textContent = entrees;
+  document.getElementById('hist-sorties').textContent = sorties;
+  document.getElementById('hist-mois').textContent    = mvtsMois;
+
+  // Filtrer
+  let list = [...state.mouvements].reverse().filter(m => {
+    const p = getProduit(m.produit_id || m.produitId);
+
+    // Recherche
+    if (search) {
+      const nomProduit = p ? p.nom.toLowerCase() : '';
+      const motif      = (m.motif      || '').toLowerCase();
+      const operateur  = (m.operateur  || '').toLowerCase();
+      if (!nomProduit.includes(search) &&
+          !motif.includes(search) &&
+          !operateur.includes(search)) return false;
+    }
+
+    // Type
+    if (typeF && m.type !== typeF) return false;
+
+    // Date début
+    if (dateDebut && m.date < dateDebut) return false;
+
+    // Date fin
+    if (dateFin && m.date > dateFin) return false;
+
+    return true;
+  });
+
+  document.getElementById('hist-count').textContent =
+    `${list.length} mouvement${list.length > 1 ? 's' : ''} trouvé${list.length > 1 ? 's' : ''}`;
+
+  const tbody = document.getElementById('tbody-historique');
+
+  if (!list.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="7">
+        <div class="empty">
+          <div class="empty-icon">📋</div>
+          <div class="empty-text">Aucun mouvement trouvé</div>
+        </div>
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = list.map(m => {
+    const p = getProduit(m.produit_id || m.produitId);
+    return `
+      <tr>
+        <td style="font-size:12px;color:var(--text2);
+                   font-family:var(--mono);white-space:nowrap;">
+          ${fmtDate(m.date)}
+        </td>
+        <td>
+          <div style="font-weight:600;font-size:13px;">
+            ${p ? p.nom : 'Produit supprimé'}
+          </div>
+          ${p ? `<div style="font-size:11px;color:var(--text3);
+                             font-family:var(--mono);">
+                   ${p.ref || ''}
+                 </div>` : ''}
+        </td>
+        <td>
+          ${p
+            ? `<span class="cat-pill">
+                 ${catEmoji(p.cat)} ${p.cat}
+               </span>`
+            : '—'}
+        </td>
+        <td>
+          <span class="badge ${m.type === 'Entrée' ? 'b-green' : 'b-red'}">
+            ${m.type === 'Entrée' ? '📥' : '📤'} ${m.type}
+          </span>
+        </td>
+        <td style="font-family:var(--mono);font-weight:700;font-size:14px;
+                   color:${m.type === 'Entrée'
+                     ? 'var(--green)'
+                     : 'var(--red)'};">
+          ${m.type === 'Entrée' ? '+' : '−'}${m.qte}
+          <span style="font-size:11px;color:var(--text3);font-weight:400;">
+            ${p ? p.unite || '' : ''}
+          </span>
+        </td>
+        <td style="font-size:12px;color:var(--text2);">
+          ${m.motif || '—'}
+        </td>
+        <td style="font-size:12px;color:var(--text2);">
+          ${m.operateur || '—'}
+        </td>
+      </tr>`;
+  }).join('');
+}
