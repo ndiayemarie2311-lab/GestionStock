@@ -541,8 +541,9 @@ async function renderUtilisateurs() {
   if (moi) {
     document.getElementById('profil-prenom').value = moi.prenom || '';
     document.getElementById('profil-nom').value    = moi.nom    || '';
-    document.getElementById('profil-email').value  = moi.email  || '';
-  }
+    document.getElementById('profil-email').value  = moi.email || state.currentUser?.email || '';  
+    
+    }
 
   // Liste utilisateurs
   const tbody = document.getElementById('tbody-utilisateurs');

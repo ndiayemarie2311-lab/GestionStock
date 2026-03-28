@@ -28,7 +28,7 @@ function showPage(id) {
   if (id === 'mouvements')   renderMouvements();
   if (id === 'fournisseurs') renderFournisseurs();
   if (id === 'alertes')      renderAlertes();
-  if (id === 'utilisateurs') renderUtilisateurs();
+  if (id === 'utilisateurs') renderUtilisateurs().catch(console.error);
 }
 
 function gotoPage(id) {
