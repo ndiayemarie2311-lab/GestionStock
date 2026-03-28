@@ -941,3 +941,172 @@ async function verifierEtEnvoyerAlertes() {
     console.error('Erreur envoi récapitulatif:', e);
   }
 }
+// ===== IMPRESSION RAPPORT =====
+function imprimerRapport() {
+  window.print();
+}
+
+// ===== EXPORT RAPPORT EXCEL =====
+function exportRapportExcel() {
+  const wb = XLSX.utils.book_new();
+
+  // Feuille 1 — Produits
+  const produits = state.produits.map(p => {
+    const fourn = getFourn(p.fourn_id);
+    const s     = stockStatut(p);
+    return {
+      'Nom'          : p.nom,
+      'Référence'    : p.ref    || '—',
+      'Catégorie'    : p.cat,
+      'Fournisseur'  : fourn ? fourn.nom : '—',
+      'Stock'        : p.stock,
+      'Seuil'        : p.seuil,
+      'Prix unitaire': p.prix,
+      'Valeur stock' : p.stock * p.prix,
+      'Statut'       : s.label
+    };
+  });
+  const ws1 = XLSX.utils.json_to_sheet(produits);
+  ws1['!cols'] = [
+    {wch:25},{wch:12},{wch:25},{wch:20},
+    {wch:8},{wch:8},{wch:14},{wch:14},{wch:10}
+  ];
+  XLSX.utils.book_append_sheet(wb, ws1, 'Produits');
+
+  // Feuille 2 — Mouvements du mois
+  const mois  = new Date().getMonth();
+  const annee = new Date().getFullYear();
+  const mvts  = state.mouvements
+    .filter(m => {
+      const d = new Date(m.date);
+      return d.getMonth() === mois && d.getFullYear() === annee;
+    })
+    .map(m => {
+      const p = getProduit(m.produit_id || m.produitId);
+      return {
+        'Date'      : fmtDate(m.date),
+        'Produit'   : p ? p.nom : 'Supprimé',
+        'Type'      : m.type,
+        'Quantité'  : m.qte,
+        'Motif'     : m.motif     || '—',
+        'Opérateur' : m.operateur || '—'
+      };
+    });
+  const ws2 = XLSX.utils.json_to_sheet(mvts);
+  XLSX.utils.book_append_sheet(wb, ws2, 'Mouvements du mois');
+
+  // Feuille 3 — Résumé par catégorie
+  const cats = {};
+  state.produits.forEach(p => {
+    if (!cats[p.cat]) cats[p.cat] = { nb:0, valeur:0, alertes:0 };
+    cats[p.cat].nb++;
+    cats[p.cat].valeur  += p.stock * p.prix;
+    if (p.stock <= p.seuil) cats[p.cat].alertes++;
+  });
+  const resume = Object.entries(cats).map(([cat, d]) => ({
+    'Catégorie'    : cat,
+    'Nb produits'  : d.nb,
+    'Valeur totale': d.valeur,
+    'Alertes'      : d.alertes
+  }));
+  const ws3 = XLSX.utils.json_to_sheet(resume);
+  XLSX.utils.book_append_sheet(wb, ws3, 'Résumé catégories');
+
+  XLSX.writeFile(wb,
+    `StockPro_Rapport_${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Rapport Excel téléchargé ✓');
+}
+
+// ===== EXPORT RAPPORT PDF =====
+function exportRapportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc   = new jsPDF({ orientation: 'landscape' });
+  const valeur = state.produits
+    .reduce((s, p) => s + p.stock * p.prix, 0);
+
+  // Header
+  doc.setFillColor(13, 15, 18);
+  doc.rect(0, 0, 297, 35, 'F');
+
+  doc.setFontSize(10);
+  doc.setTextColor(59, 130, 246);
+  doc.text('STOCKPRO', 14, 10);
+
+  doc.setFontSize(18);
+  doc.setTextColor(232, 234, 240);
+  doc.text('Rapport de Stock', 14, 22);
+
+  doc.setFontSize(9);
+  doc.setTextColor(139, 145, 158);
+  doc.text(
+    `Généré le ${new Date().toLocaleDateString('fr-FR')} par ${state.currentUser?.prenom || ''}`,
+    14, 30
+  );
+
+  doc.setFontSize(12);
+  doc.setTextColor(59, 130, 246);
+  doc.text(`Valeur totale : ${fmtPrix(valeur)}`, 200, 22);
+
+  let y = 45;
+
+  // Stats
+  const statsData = [
+    ['Total produits', state.produits.length],
+    ['En stock normal', state.produits.filter(p => p.stock > p.seuil).length],
+    ['Stock faible',   state.produits.filter(p => p.stock > 0 && p.stock <= p.seuil).length],
+    ['Rupture stock',  state.produits.filter(p => p.stock === 0).length]
+  ];
+
+  doc.autoTable({
+    startY      : y,
+    head        : [['Indicateur', 'Valeur']],
+    body        : statsData,
+    styles      : { fontSize: 10, cellPadding: 5 },
+    headStyles  : { fillColor: [59, 130, 246], textColor: 255 },
+    tableWidth  : 80
+  });
+
+  y = doc.lastAutoTable.finalY + 10;
+
+  // Produits
+  doc.setFontSize(12);
+  doc.setTextColor(59, 130, 246);
+  doc.text('Liste des produits', 14, y);
+  y += 4;
+
+  doc.autoTable({
+    startY    : y,
+    head      : [['Produit', 'Catégorie', 'Stock', 'Seuil', 'Prix', 'Valeur', 'Statut']],
+    body      : state.produits.map(p => {
+      const s = stockStatut(p);
+      return [
+        p.nom,
+        p.cat,
+        `${p.stock} ${p.unite || ''}`,
+        p.seuil,
+        fmtPrix(p.prix),
+        fmtPrix(p.stock * p.prix),
+        s.label
+      ];
+    }),
+    styles          : { fontSize: 8, cellPadding: 3 },
+    headStyles      : { fillColor: [34, 34, 46], textColor: [139, 145, 158] },
+    alternateRowStyles: { fillColor: [245, 245, 250] }
+  });
+
+  // Footer
+  const pageH = doc.internal.pageSize.height;
+  doc.setFillColor(13, 15, 18);
+  doc.rect(0, pageH - 12, 297, 12, 'F');
+  doc.setFontSize(8);
+  doc.setTextColor(85, 94, 110);
+  doc.text('StockPro — Rapport de Stock', 14, pageH - 4);
+  doc.text(
+    new Date().toLocaleDateString('fr-FR'),
+    283, pageH - 4,
+    { align: 'right' }
+  );
+
+  doc.save(`StockPro_Rapport_${new Date().toISOString().split('T')[0]}.pdf`);
+  toast('Rapport PDF téléchargé ✓');
+}
