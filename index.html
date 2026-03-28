@@ -486,27 +486,83 @@
           <div id="liste-alertes"></div>
         </div>
 
-        <!-- UTILISATEURS -->
-        <div class="page" id="page-utilisateurs">
-          <div class="sh">
-            <div>
-              <div class="sh-title">Utilisateurs</div>
-              <div class="sh-sub">Comptes ayant accès à StockPro</div>
-            </div>
-          </div>
-          <div class="card">
-            <div class="card-body" style="text-align:center;padding:40px;">
-              <div style="font-size:40px;margin-bottom:12px;">👥</div>
-              <div style="font-size:14px;margin-bottom:8px;font-weight:600;">
-                Gestion multi-utilisateurs
-              </div>
-              <div style="font-size:12px;color:var(--text2);">
-                Invitez des collaborateurs via Supabase<br/>
-                Authentication → Users dans votre dashboard.
-              </div>
-            </div>
-          </div>
+       <!-- UTILISATEURS -->
+<div class="page" id="page-utilisateurs">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Utilisateurs</div>
+      <div class="sh-sub" id="users-count"></div>
+    </div>
+  </div>
+
+  <!-- Stats utilisateurs -->
+  <div class="grid2" style="margin-bottom:16px;">
+    <div class="stat-card blue">
+      <div class="sc-icon">👥</div>
+      <div class="sc-label">Total utilisateurs</div>
+      <div class="sc-val" id="us-total">0</div>
+      <div class="sc-sub">comptes actifs</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-icon">👤</div>
+      <div class="sc-label">Mon rôle</div>
+      <div class="sc-val" id="us-role"
+           style="font-size:16px;margin-top:6px;">—</div>
+      <div class="sc-sub">compte connecté</div>
+    </div>
+  </div>
+
+  <!-- Liste utilisateurs -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">Liste des utilisateurs</div>
+      <button class="btn btn-ghost btn-sm"
+              onclick="renderUtilisateurs()">🔄 Actualiser</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Email</th>
+            <th>Rôle</th>
+            <th>Membre depuis</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-utilisateurs"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Mon profil -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">👤 Mon profil</div>
+    </div>
+    <div class="card-body">
+      <div class="frow2">
+        <div class="fg">
+          <label>Prénom</label>
+          <input id="profil-prenom" placeholder="Votre prénom"/>
         </div>
+        <div class="fg">
+          <label>Nom</label>
+          <input id="profil-nom" placeholder="Votre nom"/>
+        </div>
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input id="profil-email" disabled
+               style="opacity:0.5;cursor:not-allowed;"/>
+      </div>
+      <div style="display:flex;justify-content:flex-end;">
+        <button class="btn btn-primary"
+                onclick="saveProfil()">💾 Sauvegarder</button>
+      </div>
+    </div>
+  </div>
+
+</div>
 
       </div><!-- /content -->
     </div><!-- /main -->

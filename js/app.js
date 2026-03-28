@@ -28,6 +28,7 @@ function showPage(id) {
   if (id === 'mouvements')   renderMouvements();
   if (id === 'fournisseurs') renderFournisseurs();
   if (id === 'alertes')      renderAlertes();
+  if (id === 'utilisateurs') renderUtilisateurs();
 }
 
 function gotoPage(id) {
@@ -288,4 +289,36 @@ async function deleteFourn(id) {
   state.fournisseurs = state.fournisseurs.filter(f => f.id !== id);
   renderFournisseurs();
   toast('Fournisseur supprimé');
+}
+
+// ===== SAUVEGARDER PROFIL =====
+async function saveProfil() {
+  const prenom = document.getElementById('profil-prenom').value.trim();
+  const nom    = document.getElementById('profil-nom').value.trim();
+
+  if (!prenom || !nom) {
+    toast('Prénom et nom requis', 'error');
+    return;
+  }
+
+  const { error } = await supa
+    .from('profils')
+    .update({ prenom, nom })
+    .eq('id', state.currentUser.id);
+
+  if (error) {
+    toast('Erreur sauvegarde profil', 'error');
+    return;
+  }
+
+  // Mettre à jour l'affichage
+  state.currentUser.prenom = prenom;
+  state.currentUser.nom    = nom;
+
+  document.getElementById('user-name').textContent =
+    (prenom + ' ' + nom).trim();
+  document.getElementById('user-av').textContent =
+    (prenom[0] || '').toUpperCase() + (nom[0] || '').toUpperCase();
+
+  toast('Profil mis à jour ✓');
 }

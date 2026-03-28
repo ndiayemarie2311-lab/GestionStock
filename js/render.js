@@ -515,3 +515,87 @@ function renderAlertes() {
       </div>`;
   }).join('');
 }
+
+// ===== RENDER UTILISATEURS =====
+async function renderUtilisateurs() {
+  // Charger les profils depuis Supabase
+  const { data: profils, error } = await supa
+    .from('profils')
+    .select('*')
+    .order('created_at', { ascending: true });
+
+  if (error) {
+    console.error('Erreur chargement profils:', error);
+    return;
+  }
+
+  // Stats
+  document.getElementById('us-total').textContent = profils.length;
+  document.getElementById('us-role').textContent  =
+    state.currentUser?.role || 'Gestionnaire';
+  document.getElementById('users-count').textContent =
+    `${profils.length} utilisateur${profils.length > 1 ? 's' : ''} enregistré${profils.length > 1 ? 's' : ''}`;
+
+  // Remplir mon profil
+  const moi = profils.find(p => p.id === state.currentUser?.id);
+  if (moi) {
+    document.getElementById('profil-prenom').value = moi.prenom || '';
+    document.getElementById('profil-nom').value    = moi.nom    || '';
+    document.getElementById('profil-email').value  = moi.email  || '';
+  }
+
+  // Liste utilisateurs
+  const tbody = document.getElementById('tbody-utilisateurs');
+
+  if (!profils.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="4">
+        <div class="empty">
+          <div class="empty-icon">👥</div>
+          <div class="empty-text">Aucun utilisateur trouvé</div>
+        </div>
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = profils.map(p => {
+    const estMoi  = p.id === state.currentUser?.id;
+    const prenom  = p.prenom || '—';
+    const nom     = p.nom    || '—';
+    const initiales =
+      (p.prenom?.[0] || '').toUpperCase() +
+      (p.nom?.[0]    || '').toUpperCase();
+
+    return `
+      <tr>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div class="user-av" style="width:34px;height:34px;font-size:12px;
+                 background:${estMoi ? 'var(--blue)' : 'var(--bg4)'};
+                 border:1px solid ${estMoi ? 'var(--blue)' : 'var(--border2)'};">
+              ${initiales || '??'}
+            </div>
+            <div>
+              <div style="font-size:13px;font-weight:600;">
+                ${prenom} ${nom}
+                ${estMoi
+                  ? '<span class="badge b-blue" style="margin-left:6px;">Moi</span>'
+                  : ''}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td style="font-size:12px;color:var(--text2);">${p.email || '—'}</td>
+        <td>
+          <span class="badge ${p.role === 'admin'
+            ? 'b-orange'
+            : 'b-gray'}">
+            ${p.role === 'admin' ? '👑 Admin' : '👤 Gestionnaire'}
+          </span>
+        </td>
+        <td style="font-size:12px;color:var(--text2);font-family:var(--mono);">
+          ${fmtDate(p.created_at)}
+        </td>
+      </tr>`;
+  }).join('');
+}
