@@ -12,7 +12,13 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
   <!-- Chart.js -->
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>   
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+  <!-- SheetJS pour Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <!-- jsPDF pour PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.5.31/dist/jspdf.plugin.autotable.min.js"></script>  
 
   <!-- CSS -->
   <link rel="stylesheet" href="css/variables.css"/>
@@ -304,8 +310,12 @@
       <div class="sh-title">Tableau de bord</div>
       <div class="sh-sub" id="dash-date"></div>
     </div>
+    <button class="btn btn-ghost btn-sm"
+            onclick="exportProduitsExcel()">📊 Excel</button>
+    <button class="btn btn-ghost btn-sm"
+            onclick="exportProduitsPDF()">📄 PDF</button>
     <button class="btn btn-primary"
-            onclick="openModal('modal-produit')">+ Nouveau produit</button>
+            onclick="openModal('modal-produit')">+ Ajouter</button>
   </div>
 
   <!-- Stats principales -->
@@ -445,8 +455,12 @@
                 <option>Faible</option>
                 <option>Rupture</option>
               </select>
+              <button class="btn btn-ghost btn-sm"
+                    onclick="exportProduitsExcel()">📊 Excel</button>
+              <button class="btn btn-ghost btn-sm"
+                    onclick="exportProduitsPDF()">📄 PDF</button>
               <button class="btn btn-primary"
-                      onclick="openModal('modal-produit')">+ Ajouter</button>
+                    onclick="openModal('modal-produit')">+ Ajouter</button>
             </div>
           </div>
           <div class="card">
@@ -477,6 +491,10 @@
               <div class="sh-title">Mouvements de stock</div>
               <div class="sh-sub">Entrées et sorties enregistrées</div>
             </div>
+            <button class="btn btn-ghost btn-sm"
+                    onclick="exportHistoriqueExcel()">📊 Excel</button>
+            <button class="btn btn-ghost btn-sm"
+                    onclick="exportHistoriquePDF()">📄 PDF</button>
             <button class="btn btn-primary"
                     onclick="openModal('modal-mouvement')">+ Enregistrer</button>
           </div>

@@ -450,3 +450,182 @@ function resetFiltresHistorique() {
   document.getElementById('hist-date-fin').value   = '';
   renderHistorique();
 }
+
+// ===== EXPORT EXCEL PRODUITS =====
+function exportProduitsExcel() {
+  const data = state.produits.map(p => {
+    const fourn = getFourn(p.fourn_id);
+    const s     = stockStatut(p);
+    return {
+      'Nom'         : p.nom,
+      'Référence'   : p.ref         || '—',
+      'Catégorie'   : p.cat,
+      'Fournisseur' : fourn ? fourn.nom : '—',
+      'Stock'       : p.stock,
+      'Seuil alerte': p.seuil,
+      'Prix unitaire': p.prix,
+      'Unité'       : p.unite       || '—',
+      'Valeur stock': p.stock * p.prix,
+      'Statut'      : s.label
+    };
+  });
+
+  const ws  = XLSX.utils.json_to_sheet(data);
+  const wb  = XLSX.utils.book_new();
+
+  // Largeur des colonnes
+  ws['!cols'] = [
+    { wch: 25 }, { wch: 12 }, { wch: 25 },
+    { wch: 20 }, { wch: 8  }, { wch: 12 },
+    { wch: 14 }, { wch: 8  }, { wch: 14 },
+    { wch: 10 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Produits');
+  XLSX.writeFile(wb, `StockPro_Produits_${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Export Excel téléchargé ✓');
+}
+
+// ===== EXPORT PDF PRODUITS =====
+function exportProduitsPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape' });
+
+  // Titre
+  doc.setFontSize(18);
+  doc.setTextColor(59, 130, 246);
+  doc.text('StockPro — Liste des produits', 14, 16);
+
+  // Date
+  doc.setFontSize(10);
+  doc.setTextColor(139, 145, 158);
+  doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 23);
+
+  // Stats
+  doc.setFontSize(11);
+  doc.setTextColor(30, 30, 30);
+  const valeur = state.produits.reduce((s, p) => s + p.stock * p.prix, 0);
+  doc.text(`Total : ${state.produits.length} produits  |  Valeur stock : ${fmtPrix(valeur)}`, 14, 30);
+
+  // Table
+  doc.autoTable({
+    startY    : 35,
+    head      : [['Produit', 'Catégorie', 'Fournisseur', 'Stock', 'Seuil', 'Prix', 'Valeur', 'Statut']],
+    body      : state.produits.map(p => {
+      const fourn = getFourn(p.fourn_id);
+      const s     = stockStatut(p);
+      return [
+        p.nom,
+        `${catEmoji(p.cat)} ${p.cat}`,
+        fourn ? fourn.nom : '—',
+        `${p.stock} ${p.unite || ''}`,
+        p.seuil,
+        fmtPrix(p.prix),
+        fmtPrix(p.stock * p.prix),
+        s.label
+      ];
+    }),
+    styles    : { fontSize: 9, cellPadding: 4 },
+    headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 245, 250] },
+    columnStyles: {
+      0: { cellWidth: 45 },
+      1: { cellWidth: 35 },
+      2: { cellWidth: 35 },
+      7: { cellWidth: 20 }
+    }
+  });
+
+  doc.save(`StockPro_Produits_${new Date().toISOString().split('T')[0]}.pdf`);
+  toast('Export PDF téléchargé ✓');
+}
+
+// ===== EXPORT EXCEL HISTORIQUE =====
+function exportHistoriqueExcel() {
+  const data = [...state.mouvements].reverse().map(m => {
+    const p = getProduit(m.produit_id || m.produitId);
+    return {
+      'Date'      : fmtDate(m.date),
+      'Produit'   : p ? p.nom  : 'Supprimé',
+      'Catégorie' : p ? p.cat  : '—',
+      'Référence' : p ? p.ref  : '—',
+      'Type'      : m.type,
+      'Quantité'  : m.type === 'Entrée' ? +m.qte : -m.qte,
+      'Motif'     : m.motif    || '—',
+      'Opérateur' : m.operateur|| '—'
+    };
+  });
+
+  const ws = XLSX.utils.json_to_sheet(data);
+  const wb = XLSX.utils.book_new();
+
+  ws['!cols'] = [
+    { wch: 14 }, { wch: 25 }, { wch: 25 },
+    { wch: 12 }, { wch: 10 }, { wch: 10 },
+    { wch: 25 }, { wch: 15 }
+  ];
+
+  XLSX.utils.book_append_sheet(wb, ws, 'Historique');
+  XLSX.writeFile(wb, `StockPro_Historique_${new Date().toISOString().split('T')[0]}.xlsx`);
+  toast('Export Excel téléchargé ✓');
+}
+
+// ===== EXPORT PDF HISTORIQUE =====
+function exportHistoriquePDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ orientation: 'landscape' });
+
+  // Titre
+  doc.setFontSize(18);
+  doc.setTextColor(59, 130, 246);
+  doc.text('StockPro — Historique des mouvements', 14, 16);
+
+  // Date
+  doc.setFontSize(10);
+  doc.setTextColor(139, 145, 158);
+  doc.text(`Généré le ${new Date().toLocaleDateString('fr-FR')}`, 14, 23);
+
+  // Stats
+  doc.setFontSize(11);
+  doc.setTextColor(30, 30, 30);
+  const entrees = state.mouvements
+    .filter(m => m.type === 'Entrée')
+    .reduce((s, m) => s + m.qte, 0);
+  const sorties = state.mouvements
+    .filter(m => m.type === 'Sortie')
+    .reduce((s, m) => s + m.qte, 0);
+  doc.text(
+    `Total : ${state.mouvements.length} mouvements  |  Entrées : ${entrees}  |  Sorties : ${sorties}`,
+    14, 30
+  );
+
+  // Table
+  doc.autoTable({
+    startY    : 35,
+    head      : [['Date', 'Produit', 'Catégorie', 'Type', 'Quantité', 'Motif', 'Opérateur']],
+    body      : [...state.mouvements].reverse().map(m => {
+      const p = getProduit(m.produit_id || m.produitId);
+      return [
+        fmtDate(m.date),
+        p ? p.nom : 'Supprimé',
+        p ? p.cat : '—',
+        m.type,
+        `${m.type === 'Entrée' ? '+' : '−'}${m.qte}`,
+        m.motif    || '—',
+        m.operateur|| '—'
+      ];
+    }),
+    styles    : { fontSize: 9, cellPadding: 4 },
+    headStyles: { fillColor: [59, 130, 246], textColor: 255, fontStyle: 'bold' },
+    alternateRowStyles: { fillColor: [245, 245, 250] },
+    didDrawCell: (data) => {
+      if (data.column.index === 3 && data.cell.section === 'body') {
+        const isEntree = data.cell.raw === 'Entrée';
+        doc.setTextColor(isEntree ? 34 : 239, isEntree ? 197 : 68, isEntree ? 94 : 68);
+      }
+    }
+  });
+
+  doc.save(`StockPro_Historique_${new Date().toISOString().split('T')[0]}.pdf`);
+  toast('Export PDF téléchargé ✓');
+}
