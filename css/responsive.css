@@ -73,3 +73,40 @@
   .auth-right               { width: 100% !important; padding: 16px !important; }
   .auth-box                 { max-width: 100%; }
 }
+
+/* ===== IMPRESSION ===== */
+@media print {
+  .sidebar, .topbar, .mobile-topbar,
+  .mobile-nav, .drawer, .drawer-overlay,
+  .sh .btn, .topbar-right, .nav-section,
+  .sidebar-footer { display: none !important; }
+
+  body { background: #fff !important; color: #000 !important; }
+
+  .main  { padding: 0 !important; }
+  .content { padding: 10px !important; }
+
+  .card {
+    border: 1px solid #ddd !important;
+    box-shadow: none !important;
+    background: #fff !important;
+    break-inside: avoid;
+  }
+
+  .stat-card {
+    border: 1px solid #ddd !important;
+    background: #fff !important;
+  }
+
+  .sc-val, .card-title, .sh-title {
+    color: #000 !important;
+  }
+
+  .sc-label, .sc-sub {
+    color: #555 !important;
+  }
+
+  table { font-size: 11px !important; }
+  th    { background: #f0f0f0 !important; color: #000 !important; }
+  td    { color: #000 !important; border-color: #ddd !important; }
+}

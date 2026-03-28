@@ -264,6 +264,10 @@
                 onclick="showPage('categories')">
           <span class="ni">🏷️</span>Catégories
         </button>
+        <button class="nav-item" id="nav-rapport"
+                onclick="showPage('rapport')">
+          <span class="ni">🖨️</span>Rapport
+        </button>
         <button class="nav-item" id="nav-utilisateurs"
                 onclick="showPage('utilisateurs')">
           <span class="ni">👥</span>Utilisateurs
@@ -668,6 +672,154 @@
 
   <!-- Liste catégories -->
   <div class="grid2" id="liste-categories"></div>
+</div>
+
+<!-- RAPPORT -->
+<div class="page" id="page-rapport">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Rapport & Impression</div>
+      <div class="sh-sub">Rapport complet de votre stock</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost"
+              onclick="exportRapportExcel()">📊 Excel</button>
+      <button class="btn btn-ghost"
+              onclick="exportRapportPDF()">📄 PDF</button>
+      <button class="btn btn-primary"
+              onclick="imprimerRapport()">🖨️ Imprimer</button>
+    </div>
+  </div>
+
+  <!-- Zone imprimable -->
+  <div id="rapport-contenu">
+
+    <!-- En-tête rapport -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-body"
+           style="display:flex;align-items:center;
+                  justify-content:space-between;flex-wrap:wrap;gap:12px;">
+        <div>
+          <div style="font-family:var(--mono);font-size:22px;
+                      font-weight:700;color:var(--text);">
+            Stock<span style="color:var(--blue);">Pro</span>
+          </div>
+          <div style="font-size:13px;color:var(--text2);margin-top:4px;">
+            Rapport de stock — <span id="rapport-date"></span>
+          </div>
+          <div style="font-size:12px;color:var(--text3);margin-top:2px;"
+               id="rapport-user"></div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:11px;color:var(--text3);">Valeur totale du stock</div>
+          <div style="font-family:var(--mono);font-size:28px;
+                      font-weight:700;color:var(--blue);"
+               id="rapport-valeur">0 F</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" style="margin-bottom:16px;">
+      <div class="stat-card blue">
+        <div class="sc-icon">📦</div>
+        <div class="sc-label">Total produits</div>
+        <div class="sc-val" id="rp-total">0</div>
+      </div>
+      <div class="stat-card green">
+        <div class="sc-icon">✅</div>
+        <div class="sc-label">En stock</div>
+        <div class="sc-val" id="rp-ok">0</div>
+      </div>
+      <div class="stat-card orange">
+        <div class="sc-icon">⚠️</div>
+        <div class="sc-label">Stock faible</div>
+        <div class="sc-val" id="rp-faible">0</div>
+      </div>
+      <div class="stat-card red">
+        <div class="sc-icon">🚨</div>
+        <div class="sc-label">Rupture</div>
+        <div class="sc-val" id="rp-rupture">0</div>
+      </div>
+    </div>
+
+    <!-- Résumé par catégorie -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-title">📊 Résumé par catégorie</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Catégorie</th>
+              <th>Nb produits</th>
+              <th>Stock total</th>
+              <th>Valeur totale</th>
+              <th>Alertes</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rapport-cats"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Liste complète produits -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-title">📦 Liste complète des produits</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Produit</th>
+              <th>Réf</th>
+              <th>Catégorie</th>
+              <th>Fournisseur</th>
+              <th>Stock</th>
+              <th>Seuil</th>
+              <th>Prix unit.</th>
+              <th>Valeur stock</th>
+              <th>Statut</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rapport-produits"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Alertes actives -->
+    <div class="card" style="margin-bottom:16px;">
+      <div class="card-header">
+        <div class="card-title">🚨 Alertes actives</div>
+      </div>
+      <div id="rapport-alertes"></div>
+    </div>
+
+    <!-- Mouvements du mois -->
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🔄 Mouvements du mois en cours</div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Produit</th>
+              <th>Type</th>
+              <th>Quantité</th>
+              <th>Motif</th>
+              <th>Opérateur</th>
+            </tr>
+          </thead>
+          <tbody id="tbody-rapport-mvts"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div><!-- /rapport-contenu -->
 </div>
 
        <!-- UTILISATEURS -->

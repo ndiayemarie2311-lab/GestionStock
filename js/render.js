@@ -892,3 +892,177 @@ function renderHistorique() {
       </tr>`;
   }).join('');
 }
+
+// ===== RENDER RAPPORT =====
+function renderRapport() {
+  const valeurTotale = state.produits
+    .reduce((sum, p) => sum + p.stock * p.prix, 0);
+
+  // En-tête
+  document.getElementById('rapport-date').textContent =
+    new Date().toLocaleDateString('fr-FR', {
+      weekday: 'long', day: 'numeric',
+      month  : 'long', year: 'numeric'
+    });
+  document.getElementById('rapport-user').textContent =
+    `Généré par ${state.currentUser?.prenom || ''} ${state.currentUser?.nom || ''}`;
+  document.getElementById('rapport-valeur').textContent =
+    fmtPrix(valeurTotale);
+
+  // Stats
+  document.getElementById('rp-total').textContent =
+    state.produits.length;
+  document.getElementById('rp-ok').textContent =
+    state.produits.filter(p => p.stock > p.seuil).length;
+  document.getElementById('rp-faible').textContent =
+    state.produits.filter(p => p.stock > 0 && p.stock <= p.seuil).length;
+  document.getElementById('rp-rupture').textContent =
+    state.produits.filter(p => p.stock === 0).length;
+
+  // Résumé par catégorie
+  const cats = {};
+  state.produits.forEach(p => {
+    if (!cats[p.cat]) {
+      cats[p.cat] = {
+        nb      : 0,
+        stock   : 0,
+        valeur  : 0,
+        alertes : 0
+      };
+    }
+    cats[p.cat].nb++;
+    cats[p.cat].stock  += p.stock;
+    cats[p.cat].valeur += p.stock * p.prix;
+    if (p.stock <= p.seuil) cats[p.cat].alertes++;
+  });
+
+  document.getElementById('tbody-rapport-cats').innerHTML =
+    Object.entries(cats).map(([cat, d]) => `
+      <tr>
+        <td>
+          <span class="cat-pill">${catEmoji(cat)} ${cat}</span>
+        </td>
+        <td style="font-family:var(--mono);font-weight:700;">
+          ${d.nb}
+        </td>
+        <td style="font-family:var(--mono);">${d.stock}</td>
+        <td style="font-family:var(--mono);color:var(--blue);font-weight:700;">
+          ${fmtPrix(d.valeur)}
+        </td>
+        <td>
+          ${d.alertes > 0
+            ? `<span class="badge b-orange">⚠️ ${d.alertes}</span>`
+            : `<span class="badge b-green">✅ OK</span>`}
+        </td>
+      </tr>`
+    ).join('');
+
+  // Liste complète produits
+  document.getElementById('tbody-rapport-produits').innerHTML =
+    state.produits.map(p => {
+      const s     = stockStatut(p);
+      const fourn = getFourn(p.fourn_id);
+      return `
+        <tr>
+          <td style="font-weight:600;">${p.nom}</td>
+          <td style="font-family:var(--mono);font-size:11px;
+                     color:var(--text3);">${p.ref || '—'}</td>
+          <td>
+            <span class="cat-pill" style="font-size:10px;">
+              ${catEmoji(p.cat)} ${p.cat}
+            </span>
+          </td>
+          <td style="font-size:12px;color:var(--text2);">
+            ${fourn ? fourn.nom : '—'}
+          </td>
+          <td style="font-family:var(--mono);font-weight:700;">
+            ${p.stock} ${p.unite || ''}
+          </td>
+          <td style="font-family:var(--mono);color:var(--text2);">
+            ${p.seuil}
+          </td>
+          <td style="font-family:var(--mono);">${fmtPrix(p.prix)}</td>
+          <td style="font-family:var(--mono);color:var(--blue);font-weight:700;">
+            ${fmtPrix(p.stock * p.prix)}
+          </td>
+          <td><span class="badge ${s.cls}">${s.label}</span></td>
+        </tr>`;
+    }).join('');
+
+  // Alertes actives
+  const alertes = state.produits.filter(p => p.stock <= p.seuil);
+  document.getElementById('rapport-alertes').innerHTML = alertes.length
+    ? alertes.map(p => {
+        const s = stockStatut(p);
+        return `
+          <div class="alert-item ${p.stock === 0 ? 'critical' : 'warning'}"
+               style="margin-bottom:8px;">
+            <div style="font-size:22px;">
+              ${p.stock === 0 ? '🚨' : '⚠️'}
+            </div>
+            <div style="flex:1;">
+              <div style="font-size:13px;font-weight:700;">${p.nom}</div>
+              <div style="font-size:11px;color:var(--text2);">
+                ${catEmoji(p.cat)} ${p.cat}
+              </div>
+            </div>
+            <div style="text-align:right;">
+              <span class="badge ${s.cls}">${s.label}</span>
+              <div style="font-size:11px;color:var(--text2);margin-top:4px;">
+                Stock: <b>${p.stock}</b> / Seuil: ${p.seuil}
+              </div>
+            </div>
+          </div>`;
+      }).join('')
+    : `<div style="padding:16px;text-align:center;color:var(--text2);
+                   font-size:13px;">✅ Aucune alerte active</div>`;
+
+  // Mouvements du mois
+  const mois    = new Date().getMonth();
+  const annee   = new Date().getFullYear();
+  const mvtsMois = [...state.mouvements]
+    .filter(m => {
+      const d = new Date(m.date);
+      return d.getMonth()    === mois &&
+             d.getFullYear() === annee;
+    })
+    .reverse();
+
+  document.getElementById('tbody-rapport-mvts').innerHTML =
+    mvtsMois.length
+      ? mvtsMois.map(m => {
+          const p = getProduit(m.produit_id || m.produitId);
+          return `
+            <tr>
+              <td style="font-size:12px;color:var(--text2);
+                         font-family:var(--mono);">
+                ${fmtDate(m.date)}
+              </td>
+              <td style="font-weight:600;font-size:13px;">
+                ${p ? p.nom : 'Supprimé'}
+              </td>
+              <td>
+                <span class="badge ${m.type === 'Entrée'
+                  ? 'b-green' : 'b-red'}">
+                  ${m.type === 'Entrée' ? '📥' : '📤'} ${m.type}
+                </span>
+              </td>
+              <td style="font-family:var(--mono);font-weight:700;
+                         color:${m.type === 'Entrée'
+                           ? 'var(--green)' : 'var(--red)'};">
+                ${m.type === 'Entrée' ? '+' : '−'}${m.qte}
+              </td>
+              <td style="font-size:12px;color:var(--text2);">
+                ${m.motif || '—'}
+              </td>
+              <td style="font-size:12px;color:var(--text2);">
+                ${m.operateur || '—'}
+              </td>
+            </tr>`;
+        }).join('')
+      : `<tr><td colspan="6">
+           <div class="empty" style="padding:20px;">
+             <div style="font-size:13px;">Aucun mouvement ce mois</div>
+           </div>
+         </td></tr>`;
+}
