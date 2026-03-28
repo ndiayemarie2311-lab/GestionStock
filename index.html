@@ -293,6 +293,7 @@
       <div class="content">
 
         <!-- DASHBOARD -->
+<!-- DASHBOARD -->
 <div class="page active" id="page-dashboard">
   <div class="sh">
     <div>
@@ -303,7 +304,7 @@
             onclick="openModal('modal-produit')">+ Nouveau produit</button>
   </div>
 
-  <!-- Stats -->
+  <!-- Stats principales -->
   <div class="stats-row">
     <div class="stat-card blue">
       <div class="sc-icon">📦</div>
@@ -331,7 +332,36 @@
     </div>
   </div>
 
-  <!-- Graphiques ligne 1 -->
+  <!-- Stats avancées -->
+  <div class="stats-row" style="margin-bottom:20px;">
+    <div class="stat-card blue">
+      <div class="sc-icon">💰</div>
+      <div class="sc-label">Valeur totale stock</div>
+      <div class="sc-val" id="ds-valeur"
+           style="font-size:18px;margin-top:4px;">0 F</div>
+      <div class="sc-sub">estimation totale</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-icon">📥</div>
+      <div class="sc-label">Entrées ce mois</div>
+      <div class="sc-val" id="ds-entrees">0</div>
+      <div class="sc-sub">unités reçues</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-icon">📤</div>
+      <div class="sc-label">Sorties ce mois</div>
+      <div class="sc-val" id="ds-sorties">0</div>
+      <div class="sc-sub">unités expédiées</div>
+    </div>
+    <div class="stat-card red">
+      <div class="sc-icon">🚚</div>
+      <div class="sc-label">Fournisseurs</div>
+      <div class="sc-val" id="ds-fournisseurs">0</div>
+      <div class="sc-sub">actifs</div>
+    </div>
+  </div>
+
+  <!-- Graphiques -->
   <div class="grid2">
     <div class="card">
       <div class="card-header">
@@ -351,28 +381,35 @@
     </div>
   </div>
 
-  <!-- Graphiques ligne 2 -->
+  <!-- Top produits et alertes -->
   <div class="grid2">
     <div class="card">
       <div class="card-header">
-        <div class="card-title">🔔 Alertes récentes</div>
+        <div class="card-title">🏆 Top 5 produits (valeur stock)</div>
+      </div>
+      <div class="card-body" id="dash-top-produits"></div>
+    </div>
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">🚨 Produits critiques</div>
         <button class="btn btn-ghost btn-sm"
                 onclick="showPage('alertes')">Voir tout →</button>
       </div>
       <div class="card-body" id="dash-alertes"></div>
     </div>
-    <div class="card">
-      <div class="card-header">
-        <div class="card-title">🔄 Mouvements récents</div>
-        <button class="btn btn-ghost btn-sm"
-                onclick="showPage('mouvements')">Voir tout →</button>
-      </div>
-      <div class="card-body" id="dash-mouvements"></div>
+  </div>
+
+  <!-- Mouvements récents -->
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title">🔄 Mouvements récents</div>
+      <button class="btn btn-ghost btn-sm"
+              onclick="showPage('mouvements')">Voir tout →</button>
     </div>
+    <div class="card-body" id="dash-mouvements"></div>
   </div>
 
 </div>
-
         <!-- PRODUITS -->
         <div class="page" id="page-produits">
           <div class="sh">

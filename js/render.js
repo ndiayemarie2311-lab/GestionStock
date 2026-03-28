@@ -138,15 +138,45 @@ function renderChartCategories() {
 function renderDashboard() {
   renderChartMouvements();
   renderChartCategories();
+
   const total   = state.produits.length;
   const ok      = state.produits.filter(p => p.stock > p.seuil).length;
   const faible  = state.produits.filter(p => p.stock > 0 && p.stock <= p.seuil).length;
   const rupture = state.produits.filter(p => p.stock === 0).length;
 
+  // Stats principales
   document.getElementById('ds-total').textContent   = total;
   document.getElementById('ds-ok').textContent      = ok;
   document.getElementById('ds-faible').textContent  = faible;
   document.getElementById('ds-rupture').textContent = rupture;
+
+  // Stats avancées
+  const valeurTotale = state.produits.reduce((sum, p) =>
+    sum + (p.stock * p.prix), 0);
+  document.getElementById('ds-valeur').textContent = fmtPrix(valeurTotale);
+  document.getElementById('ds-fournisseurs').textContent =
+    state.fournisseurs.length;
+
+  // Entrées / Sorties ce mois
+  const maintenant  = new Date();
+  const moisActuel  = maintenant.getMonth();
+  const anneeActuelle = maintenant.getFullYear();
+
+  const mvtsMois = state.mouvements.filter(m => {
+    const d = new Date(m.date);
+    return d.getMonth() === moisActuel &&
+           d.getFullYear() === anneeActuelle;
+  });
+
+  const entreesMois = mvtsMois
+    .filter(m => m.type === 'Entrée')
+    .reduce((sum, m) => sum + m.qte, 0);
+  const sortiesMois = mvtsMois
+    .filter(m => m.type === 'Sortie')
+    .reduce((sum, m) => sum + m.qte, 0);
+
+  document.getElementById('ds-entrees').textContent = entreesMois;
+  document.getElementById('ds-sorties').textContent = sortiesMois;
 
   document.getElementById('dash-date').textContent =
     new Date().toLocaleDateString('fr-FR', {
@@ -156,9 +186,55 @@ function renderDashboard() {
       year   : 'numeric'
     });
 
-  // --- Alertes ---
+  // Top 5 produits par valeur stock
+  const top5 = [...state.produits]
+    .map(p => ({ ...p, valeur: p.stock * p.prix }))
+    .sort((a, b) => b.valeur - a.valeur)
+    .slice(0, 5);
+
+  document.getElementById('dash-top-produits').innerHTML = top5.length
+    ? top5.map((p, i) => {
+        const pct = top5[0].valeur > 0
+          ? Math.round(p.valeur / top5[0].valeur * 100)
+          : 0;
+        const medals = ['🥇', '🥈', '🥉', '4️⃣', '5️⃣'];
+        return `
+          <div style="margin-bottom:14px;">
+            <div style="display:flex;align-items:center;
+                        justify-content:space-between;margin-bottom:5px;">
+              <div style="display:flex;align-items:center;gap:8px;">
+                <span style="font-size:16px;">${medals[i]}</span>
+                <div>
+                  <div style="font-size:13px;font-weight:600;">${p.nom}</div>
+                  <div style="font-size:11px;color:var(--text2);">
+                    ${catEmoji(p.cat)} ${p.cat}
+                  </div>
+                </div>
+              </div>
+              <div style="text-align:right;">
+                <div style="font-family:var(--mono);font-size:13px;
+                            font-weight:700;color:var(--blue);">
+                  ${fmtPrix(p.valeur)}
+                </div>
+                <div style="font-size:11px;color:var(--text2);">
+                  ${p.stock} ${p.unite || ''}
+                </div>
+              </div>
+            </div>
+            <div class="stock-bar">
+              <div class="stock-fill"
+                   style="width:${pct}%;background:var(--blue);"></div>
+            </div>
+          </div>`;
+      }).join('')
+    : `<div class="empty" style="padding:20px;">
+         <div style="font-size:13px;">Aucun produit</div>
+       </div>`;
+
+  // Alertes
   const alerts = state.produits
     .filter(p => p.stock <= p.seuil)
+    .sort((a, b) => a.stock - b.stock)
     .slice(0, 4);
 
   document.getElementById('dash-alertes').innerHTML = alerts.length
@@ -167,6 +243,9 @@ function renderDashboard() {
         return `
           <div class="alert-item ${p.stock === 0 ? 'critical' : 'warning'}"
                style="margin-bottom:8px;">
+            <div style="font-size:24px;">
+              ${p.stock === 0 ? '🚨' : '⚠️'}
+            </div>
             <div style="flex:1;">
               <div style="font-size:13px;font-weight:600;">${p.nom}</div>
               <div style="font-size:11px;color:var(--text2);margin-top:2px;">
@@ -186,34 +265,35 @@ function renderDashboard() {
          <div style="font-size:13px;">Aucune alerte en cours</div>
        </div>`;
 
-  // --- Mouvements récents ---
+  // Mouvements récents
   const mvts = [...state.mouvements].reverse().slice(0, 5);
 
   document.getElementById('dash-mouvements').innerHTML = mvts.length
     ? mvts.map(m => {
-        const p = getProduit(m.produitId);
+        const p = getProduit(m.produit_id || m.produitId);
         return `
           <div style="display:flex;align-items:center;gap:10px;
-                      padding:8px 0;border-bottom:1px solid var(--border);">
-            <div style="width:28px;height:28px;border-radius:var(--rsm);
+                      padding:10px 0;border-bottom:1px solid var(--border);">
+            <div style="width:32px;height:32px;border-radius:var(--rsm);
                         display:flex;align-items:center;justify-content:center;
-                        font-size:13px;
+                        font-size:14px;flex-shrink:0;
                         background:${m.type === 'Entrée'
                           ? 'var(--green-glow)'
                           : 'var(--red-glow)'};">
               ${m.type === 'Entrée' ? '📥' : '📤'}
             </div>
             <div style="flex:1;min-width:0;">
-              <div style="font-size:12px;font-weight:600;
-                          white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              <div style="font-size:13px;font-weight:600;
+                          white-space:nowrap;overflow:hidden;
+                          text-overflow:ellipsis;">
                 ${p ? p.nom : 'Produit supprimé'}
               </div>
               <div style="font-size:11px;color:var(--text2);">
-                ${m.motif || m.type}
+                ${m.motif || m.type} · ${m.operateur || 'Admin'}
               </div>
             </div>
             <div style="text-align:right;flex-shrink:0;">
-              <div style="font-family:var(--mono);font-size:12px;
+              <div style="font-family:var(--mono);font-size:13px;font-weight:700;
                           color:${m.type === 'Entrée'
                             ? 'var(--green)'
                             : 'var(--red)'};">
@@ -228,14 +308,6 @@ function renderDashboard() {
     : `<div class="empty" style="padding:20px;">
          <div style="font-size:13px;">Aucun mouvement</div>
        </div>`;
-
-  // --- Catégories ---
-  const cats = {};
-  state.produits.forEach(p => {
-    cats[p.cat] = (cats[p.cat] || 0) + 1;
-  });
-
-    '<div style="color:var(--text2);font-size:13px;">Aucun produit</div>';
 
   updateBadges();
 }
