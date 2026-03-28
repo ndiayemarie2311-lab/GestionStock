@@ -176,9 +176,10 @@
 .content {
   padding: 20px 24px;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1;
+  height: calc(100vh - 56px);
 }
-
 /* ===== PAGES ===== */
 .page {
   display: none;
