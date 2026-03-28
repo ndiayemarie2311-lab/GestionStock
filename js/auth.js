@@ -147,13 +147,6 @@ async function bootApp(user) {
 
   showApp();
 
-  // Afficher un loader pendant le chargement
-  document.getElementById('page-dashboard').innerHTML =
-    `<div style="text-align:center;padding:60px;color:var(--text2);">
-       <div style="font-size:32px;margin-bottom:12px;">⏳</div>
-       <div>Chargement des données...</div>
-     </div>`;
-
   // Charger les données depuis Supabase
   await charger();
 
@@ -162,8 +155,7 @@ async function bootApp(user) {
     await initDemoData();
   }
 
-  // Restaurer le dashboard et afficher
-  document.getElementById('page-dashboard').innerHTML = '';
+  // Afficher le dashboard
   renderDashboard();
   updateBadges();
 }
