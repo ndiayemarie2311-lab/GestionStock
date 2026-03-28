@@ -26,3 +26,13 @@ const APP_CONFIG = {
     'Autre'                      : '📦'
   }
 };
+
+// ===== CONFIGURATION EMAILJS =====
+const EMAIL_CONFIG = {
+  publicKey  : '52sI0J-OdFz0YyGFf',
+  serviceId  : 'service_rak0rnm',
+  templateId : 'template_20mhpwg'
+};
+
+// Initialiser EmailJS
+emailjs.init(EMAIL_CONFIG.publicKey);

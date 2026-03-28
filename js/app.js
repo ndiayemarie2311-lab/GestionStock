@@ -840,3 +840,95 @@ function exportFicheProduit(id) {
   doc.save(`StockPro_Fiche_${p.nom.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.pdf`);
   toast(`Fiche PDF de "${p.nom}" téléchargée ✓`);
 }
+// ===== NOTIFICATIONS EMAIL =====
+async function envoyerAlertesTous() {
+  const alertes = state.produits.filter(p => p.stock <= p.seuil);
+
+  if (!alertes.length) {
+    toast('Aucune alerte à envoyer ✓', 'success');
+    return;
+  }
+
+  const user = state.currentUser;
+  if (!user?.email) {
+    toast('Email utilisateur introuvable', 'error');
+    return;
+  }
+
+  toast('Envoi en cours...', 'warning');
+
+  let success = 0;
+  let errors  = 0;
+
+  for (const p of alertes) {
+    const s = stockStatut(p);
+    try {
+      await emailjs.send(
+        EMAIL_CONFIG.serviceId,
+        EMAIL_CONFIG.templateId,
+        {
+          destinataire : user.prenom || user.email,
+          produit_nom  : p.nom,
+          produit_cat  : p.cat,
+          stock_actuel : `${p.stock} ${p.unite || ''}`,
+          seuil        : `${p.seuil} ${p.unite || ''}`,
+          statut       : s.label,
+          to_email     : user.email
+        }
+      );
+      success++;
+    } catch(e) {
+      console.error('Erreur envoi email:', e);
+      errors++;
+    }
+  }
+
+  if (success > 0) {
+    toast(`${success} alerte${success > 1 ? 's' : ''} envoyée${success > 1 ? 's' : ''} à ${user.email} ✓`);
+  }
+  if (errors > 0) {
+    toast(`${errors} erreur${errors > 1 ? 's' : ''} lors de l'envoi`, 'error');
+  }
+}
+
+// ===== ALERTE EMAIL AUTOMATIQUE =====
+async function verifierEtEnvoyerAlertes() {
+  const alertes = state.produits.filter(p => p.stock <= p.seuil);
+  if (!alertes.length) return;
+
+  const user = state.currentUser;
+  if (!user?.email) return;
+
+  // Vérifier si on a déjà envoyé aujourd'hui
+  const today     = new Date().toISOString().split('T')[0];
+  const lastSent  = localStorage.getItem('stockpro_last_alert');
+  if (lastSent === today) return;
+
+  // Envoyer un email récapitulatif
+  const listeAlertes = alertes.map(p => {
+    const s = stockStatut(p);
+    return `• ${p.nom} — Stock: ${p.stock} ${p.unite || ''} (Seuil: ${p.seuil}) — ${s.label}`;
+  }).join('\n');
+
+  try {
+    await emailjs.send(
+      EMAIL_CONFIG.serviceId,
+      EMAIL_CONFIG.templateId,
+      {
+        destinataire : user.prenom || user.email,
+        produit_nom  : `${alertes.length} produit${alertes.length > 1 ? 's' : ''} en alerte`,
+        produit_cat  : listeAlertes,
+        stock_actuel : `${alertes.length} alertes détectées`,
+        seuil        : 'Voir liste ci-dessus',
+        statut       : 'Récapitulatif quotidien',
+        to_email     : user.email
+      }
+    );
+
+    // Sauvegarder la date d'envoi
+    localStorage.setItem('stockpro_last_alert', today);
+    console.log('Email récapitulatif envoyé ✓');
+  } catch(e) {
+    console.error('Erreur envoi récapitulatif:', e);
+  }
+}

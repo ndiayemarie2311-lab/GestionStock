@@ -158,6 +158,9 @@ async function bootApp(user) {
   // Afficher le dashboard
   renderDashboard();
   updateBadges();
+
+  // Vérifier les alertes et envoyer email si nécessaire
+  setTimeout(() => verifierEtEnvoyerAlertes(), 3000);
 }
 
 // ===== INITIALISATION =====

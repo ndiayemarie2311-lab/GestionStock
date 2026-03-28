@@ -13,6 +13,10 @@
 
   <!-- Chart.js -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script> 
+
+  <!-- EmailJS -->
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+
   <!-- SheetJS pour Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 
@@ -637,15 +641,19 @@
         </div>
 
         <!-- ALERTES -->
-        <div class="page" id="page-alertes">
-          <div class="sh">
-            <div>
-              <div class="sh-title">Alertes stock</div>
-              <div class="sh-sub">Produits sous le seuil d'alerte</div>
-            </div>
-          </div>
-          <div id="liste-alertes"></div>
-        </div>
+<div class="page" id="page-alertes">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Alertes stock</div>
+      <div class="sh-sub">Produits sous le seuil d'alerte</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-warning"
+              onclick="envoyerAlertesTous()">
+        📧 Envoyer alertes par email
+      </button>
+    </div>
+  </div>
 
         <!-- CATEGORIES -->
 <div class="page" id="page-categories">
