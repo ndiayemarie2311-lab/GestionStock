@@ -70,10 +70,6 @@ function openModal(id) {
     populateFourniSelect();
     populateCategoriesSelect('p-cat');
   }
-
-  if (id === 'modal-categorie') {
-    // Rien à préparer
-  }
 }
 
 // ===== FERMER MODAL =====

@@ -286,7 +286,7 @@ function renderProduits() {
 
   tbody.innerHTML = list.map(p => {
     const s     = stockStatut(p);
-    const fourn = getFourn(p.fourniId);
+    const fourn = getFourn(p.fourn_id);
     const pct   = p.seuil > 0
       ? Math.min(100, Math.round(p.stock / p.seuil * 50))
       : 100;
@@ -617,40 +617,97 @@ function renderCategories() {
   }
 
   container.innerHTML = state.categories.map(c => {
-    const nbProduits = state.produits.filter(p => p.cat === c.nom).length;
+    const produitsCat = state.produits.filter(p => p.cat === c.nom);
+    const nbProduits  = produitsCat.length;
+    const nbAlertes   = produitsCat.filter(p => p.stock <= p.seuil).length;
+    const valeurTotale= produitsCat.reduce((sum, p) => sum + (p.stock * p.prix), 0);
+
     return `
       <div class="card" style="margin-bottom:12px;">
         <div class="card-header">
           <div style="display:flex;align-items:center;gap:12px;">
-            <div style="width:42px;height:42px;border-radius:var(--rsm);
-                        background:${c.couleur}22;border:1px solid ${c.couleur}44;
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:20px;">
+            <div style="width:46px;height:46px;border-radius:var(--rsm);
+                        background:${c.couleur}22;
+                        border:2px solid ${c.couleur}55;
+                        display:flex;align-items:center;
+                        justify-content:center;font-size:22px;">
               ${c.emoji}
             </div>
             <div>
-              <div class="card-title">${c.nom}</div>
-              <div style="font-size:12px;color:var(--text2);margin-top:2px;">
+              <div class="card-title" style="font-size:15px;">${c.nom}</div>
+              <div style="font-size:11px;color:var(--text2);margin-top:2px;">
                 ${nbProduits} produit${nbProduits > 1 ? 's' : ''}
+                ${nbAlertes > 0
+                  ? `· <span style="color:var(--orange);">
+                       ⚠️ ${nbAlertes} alerte${nbAlertes > 1 ? 's' : ''}
+                     </span>`
+                  : ''}
               </div>
             </div>
           </div>
           <div style="display:flex;gap:6px;">
             <button class="btn btn-ghost btn-sm"
-                    onclick="editCategorie('${c.id}')">✏️ Modifier</button>
+                    onclick="editCategorie('${c.id}')">✏️</button>
             <button class="btn btn-danger btn-sm"
                     onclick="deleteCategorie('${c.id}')">🗑️</button>
           </div>
         </div>
-        <div class="card-body">
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:12px;height:12px;border-radius:50%;
-                        background:${c.couleur};flex-shrink:0;"></div>
-            <div style="font-size:12px;color:var(--text2);">
-              Couleur : <span style="font-family:var(--mono);color:${c.couleur};">
-                ${c.couleur}
-              </span>
+        <div class="card-body"
+             style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">
+              Valeur totale stock
             </div>
+            <div style="font-family:var(--mono);font-size:14px;
+                        font-weight:700;color:var(--blue);">
+              ${fmtPrix(valeurTotale)}
+            </div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text3);margin-bottom:4px;">
+              Statut stock
+            </div>
+            <div>
+              ${nbAlertes > 0
+                ? `<span class="badge b-orange">⚠️ ${nbAlertes} alerte${nbAlertes > 1 ? 's' : ''}</span>`
+                : `<span class="badge b-green">✅ Normal</span>`}
+            </div>
+          </div>
+          <div style="grid-column:span 2;">
+            <div style="font-size:11px;color:var(--text3);margin-bottom:6px;">
+              Produits
+            </div>
+            ${produitsCat.length
+              ? produitsCat.map(p => {
+                  const s = stockStatut(p);
+                  return `
+                    <div style="display:flex;align-items:center;gap:8px;
+                                padding:6px 0;border-bottom:1px solid var(--border);">
+                      <div style="flex:1;font-size:12px;font-weight:500;">
+                        ${p.nom}
+                      </div>
+                      <div style="font-family:var(--mono);font-size:12px;
+                                  color:var(--text2);">
+                        ${p.stock} ${p.unite || ''}
+                      </div>
+                      <span class="badge ${s.cls}" style="font-size:10px;">
+                        ${s.label}
+                      </span>
+                      <button class="btn btn-ghost btn-sm btn-icon"
+                              onclick="editProduit('${p.id}')"
+                              title="Modifier">✏️</button>
+                    </div>`;
+                }).join('')
+              : `<div style="font-size:12px;color:var(--text3);
+                             padding:8px 0;">
+                   Aucun produit dans cette catégorie
+                 </div>`}
+          </div>
+          <div style="grid-column:span 2;margin-top:4px;">
+            <button class="btn btn-ghost btn-sm" style="width:100%;"
+                    onclick="filtrerParCategorie('${c.nom}')">
+              📦 Voir tous les produits →
+            </button>
           </div>
         </div>
       </div>`;

@@ -412,3 +412,9 @@ async function deleteCategorie(id) {
   renderCategories();
   toast('Catégorie supprimée');
 }
+// ===== FILTRER PAR CATEGORIE =====
+function filtrerParCategorie(nom) {
+  showPage('produits');
+  document.getElementById('filter-cat').value = nom;
+  renderProduits();
+}
