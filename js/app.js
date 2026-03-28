@@ -28,6 +28,7 @@ function showPage(id) {
   if (id === 'mouvements')   renderMouvements();
   if (id === 'fournisseurs') renderFournisseurs();
   if (id === 'alertes')      renderAlertes();
+  if (id === 'categories')   renderCategories();
   if (id === 'utilisateurs') renderUtilisateurs().catch(console.error);
 }
 
@@ -321,4 +322,93 @@ async function saveProfil() {
     (prenom[0] || '').toUpperCase() + (nom[0] || '').toUpperCase();
 
   toast('Profil mis à jour ✓');
+}
+// ===== CRUD CATEGORIES =====
+async function saveCategorie() {
+  const nom    = document.getElementById('cat-nom').value.trim();
+  const emoji  = document.getElementById('cat-emoji').value.trim() || '📦';
+  const couleur= document.getElementById('cat-couleur').value;
+
+  if (!nom) {
+    toast('Nom de la catégorie requis', 'error');
+    return;
+  }
+
+  const id   = document.getElementById('cat-id').value;
+  const data = { nom, emoji, couleur };
+
+  if (id) {
+    // Modification
+    const { error } = await supa
+      .from('categories')
+      .update(data)
+      .eq('id', id);
+
+    if (error) { toast('Erreur modification', 'error'); return; }
+
+    const idx = state.categories.findIndex(c => c.id === id);
+    if (idx > -1) state.categories[idx] = { ...state.categories[idx], ...data };
+    toast('Catégorie modifiée ✓');
+
+  } else {
+    // Ajout
+    const { data: inserted, error } = await supa
+      .from('categories')
+      .insert([{ ...data, user_id: state.currentUser.id }])
+      .select();
+
+    if (error) { toast('Erreur ajout', 'error'); return; }
+
+    state.categories.push(inserted[0]);
+    toast('Catégorie ajoutée ✓');
+  }
+
+  closeModal('modal-categorie');
+  resetCategorieForm();
+  renderCategories();
+}
+
+function resetCategorieForm() {
+  document.getElementById('cat-id').value     = '';
+  document.getElementById('cat-nom').value    = '';
+  document.getElementById('cat-emoji').value  = '';
+  document.getElementById('cat-couleur').value= '#3b82f6';
+  document.getElementById('modal-cat-title').textContent = 'Nouvelle catégorie';
+}
+
+function editCategorie(id) {
+  const c = state.categories.find(cat => cat.id === id);
+  if (!c) return;
+
+  document.getElementById('cat-id').value      = c.id;
+  document.getElementById('cat-nom').value     = c.nom;
+  document.getElementById('cat-emoji').value   = c.emoji   || '';
+  document.getElementById('cat-couleur').value = c.couleur || '#3b82f6';
+  document.getElementById('modal-cat-title').textContent = 'Modifier la catégorie';
+
+  openModal('modal-categorie');
+}
+
+async function deleteCategorie(id) {
+  const c = state.categories.find(cat => cat.id === id);
+  if (!c) return;
+
+  const nbProduits = state.produits.filter(p => p.cat === c.nom).length;
+  if (nbProduits > 0) {
+    toast(`Impossible — ${nbProduits} produit(s) utilisent cette catégorie`, 'error');
+    return;
+  }
+
+  if (!confirm('Supprimer cette catégorie ?')) return;
+
+  const { error } = await supa
+    .from('categories')
+    .delete()
+    .eq('id', id);
+
+  if (error) { toast('Erreur suppression', 'error'); return; }
+
+  state.categories = state.categories.filter(c => c.id !== id);
+  renderCategories();
+  toast('Catégorie supprimée');
 }

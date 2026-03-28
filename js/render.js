@@ -542,7 +542,7 @@ async function renderUtilisateurs() {
     document.getElementById('profil-prenom').value = moi.prenom || '';
     document.getElementById('profil-nom').value    = moi.nom    || '';
     document.getElementById('profil-email').value  = moi.email || state.currentUser?.email || '';  
-    
+
     }
 
   // Liste utilisateurs
@@ -598,5 +598,61 @@ async function renderUtilisateurs() {
           ${fmtDate(p.created_at)}
         </td>
       </tr>`;
+  }).join('');
+}
+// ===== RENDER CATEGORIES =====
+function renderCategories() {
+  document.getElementById('cat-count').textContent =
+    `${state.categories.length} catégorie${state.categories.length > 1 ? 's' : ''}`;
+
+  const container = document.getElementById('liste-categories');
+
+  if (!state.categories.length) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🏷️</div>
+        <div class="empty-text">Aucune catégorie ajoutée</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = state.categories.map(c => {
+    const nbProduits = state.produits.filter(p => p.cat === c.nom).length;
+    return `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:42px;height:42px;border-radius:var(--rsm);
+                        background:${c.couleur}22;border:1px solid ${c.couleur}44;
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:20px;">
+              ${c.emoji}
+            </div>
+            <div>
+              <div class="card-title">${c.nom}</div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px;">
+                ${nbProduits} produit${nbProduits > 1 ? 's' : ''}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:6px;">
+            <button class="btn btn-ghost btn-sm"
+                    onclick="editCategorie('${c.id}')">✏️ Modifier</button>
+            <button class="btn btn-danger btn-sm"
+                    onclick="deleteCategorie('${c.id}')">🗑️</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:12px;height:12px;border-radius:50%;
+                        background:${c.couleur};flex-shrink:0;"></div>
+            <div style="font-size:12px;color:var(--text2);">
+              Couleur : <span style="font-family:var(--mono);color:${c.couleur};">
+                ${c.couleur}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>`;
   }).join('');
 }

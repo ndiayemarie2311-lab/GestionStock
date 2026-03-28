@@ -192,6 +192,9 @@
         <span class="nav-badge" id="drawer-badge-alertes"
               style="display:none;">0</span>
       </button>
+      <button class="nav-item" onclick="gotoPage('categories')">
+        <span class="ni">🏷️</span>Catégories
+      </button>
       <button class="nav-item" onclick="gotoPage('utilisateurs')">
         <span class="ni">👥</span>Utilisateurs
       </button>
@@ -242,6 +245,10 @@
                 onclick="showPage('alertes')">
           <span class="ni">🔔</span>Alertes
           <span class="nav-badge" id="badge-alertes" style="display:none;">0</span>
+        </button>
+        <button class="nav-item" id="nav-categories"
+                onclick="showPage('categories')">
+          <span class="ni">🏷️</span>Catégories
         </button>
         <button class="nav-item" id="nav-utilisateurs"
                 onclick="showPage('utilisateurs')">
@@ -485,6 +492,21 @@
           </div>
           <div id="liste-alertes"></div>
         </div>
+
+        <!-- CATEGORIES -->
+<div class="page" id="page-categories">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Catégories</div>
+      <div class="sh-sub" id="cat-count"></div>
+    </div>
+    <button class="btn btn-primary"
+            onclick="openModal('modal-categorie')">+ Ajouter</button>
+  </div>
+
+  <!-- Liste catégories -->
+  <div class="grid2" id="liste-categories"></div>
+</div>
 
        <!-- UTILISATEURS -->
 <div class="page" id="page-utilisateurs">

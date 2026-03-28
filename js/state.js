@@ -1,15 +1,27 @@
 // ===== STATE GLOBAL =====
+// APRÈS
 const state = {
   produits     : [],
   mouvements   : [],
   fournisseurs : [],
+  categories   : [],
   currentUser  : null,
   searchQuery  : ''
 };
 
 // ===== CHARGER DEPUIS SUPABASE =====
+// ===== CHARGER DEPUIS SUPABASE =====
 async function charger() {
   try {
+    // Categories
+    const { data: categories, error: ec } = await supa
+      .from('categories')
+      .select('*')
+      .order('created_at', { ascending: true });
+
+    if (ec) throw ec;
+    state.categories = categories || [];
+
     // Fournisseurs
     const { data: fournisseurs, error: ef } = await supa
       .from('fournisseurs')

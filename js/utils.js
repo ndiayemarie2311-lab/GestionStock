@@ -28,12 +28,14 @@ function stockStatut(p) {
 
 // ===== EMOJI CATEGORIE =====
 function catEmoji(cat) {
-  return APP_CONFIG.catEmojis[cat] || '📦';
+  const found = state.categories.find(c => c.nom === cat);
+  return found ? found.emoji : '📦';
 }
 
-// ===== TROUVER FOURNISSEUR =====
-function getFourn(id) {
-  return state.fournisseurs.find(f => f.id === id);
+// ===== COULEUR CATEGORIE =====
+function catCouleur(cat) {
+  const found = state.categories.find(c => c.nom === cat);
+  return found ? found.couleur : '#3b82f6';
 }
 
 // ===== TROUVER PRODUIT =====
@@ -58,7 +60,6 @@ function toast(msg, type = 'success') {
 function openModal(id) {
   document.getElementById(id).classList.add('open');
 
-  // Pré-remplissages selon la modal
   if (id === 'modal-mouvement') {
     populateProduitSelect();
     document.getElementById('m-date').value =
@@ -67,6 +68,11 @@ function openModal(id) {
 
   if (id === 'modal-produit') {
     populateFourniSelect();
+    populateCategoriesSelect('p-cat');
+  }
+
+  if (id === 'modal-categorie') {
+    // Rien à préparer
   }
 }
 
@@ -100,6 +106,16 @@ function populateFourniSelect() {
     '<option value="">— Aucun —</option>' +
     state.fournisseurs.map(f =>
       `<option value="${f.id}">${f.nom}</option>`
+    ).join('');
+}
+// ===== POPULATE CATEGORIES SELECT =====
+function populateCategoriesSelect(selectId) {
+  const sel = document.getElementById(selectId);
+  if (!sel) return;
+  sel.innerHTML =
+    '<option value="">— Choisir —</option>' +
+    state.categories.map(c =>
+      `<option value="${c.nom}">${c.emoji} ${c.nom}</option>`
     ).join('');
 }
 
