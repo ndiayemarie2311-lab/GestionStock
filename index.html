@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>StockPro — Gestion de Stock</title>
+
+  <!-- Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
+
+  <!-- Supabase -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+  <!-- CSS -->
+  <link rel="stylesheet" href="css/variables.css"/>
+  <link rel="stylesheet" href="css/layout.css"/>
+  <link rel="stylesheet" href="css/components.css"/>
+  <link rel="stylesheet" href="css/responsive.css"/>
+</head>
+<body>
+
+<!-- ===== AUTH SCREEN ===== -->
+<div id="auth-screen">
+
+  <!-- Côté gauche -->
+  <div class="auth-left">
+    <div class="auth-brand">Stock<span>Pro</span></div>
+    <div class="auth-tagline">
+      Gérez votre inventaire multi-catégories<br/>
+      en temps réel, depuis n'importe où.
+    </div>
+
+    <div class="auth-feature">
+      <div class="auth-feat-icon"
+           style="background:var(--blue-glow);color:var(--blue);">📦</div>
+      <div class="auth-feat-text">
+        <strong>Stock multi-catégories</strong>
+        Alimentaire, textile, électronique et plus
+      </div>
+    </div>
+
+    <div class="auth-feature">
+      <div class="auth-feat-icon"
+           style="background:var(--orange-glow);color:var(--orange);">🔔</div>
+      <div class="auth-feat-text">
+        <strong>Alertes intelligentes</strong>
+        Seuils critiques détectés automatiquement
+      </div>
+    </div>
+
+    <div class="auth-feature">
+      <div class="auth-feat-icon"
+           style="background:var(--green-glow);color:var(--green);">📊</div>
+      <div class="auth-feat-text">
+        <strong>Tableau de bord</strong>
+        Statistiques et mouvements en temps réel
+      </div>
+    </div>
+
+    <div class="auth-feature">
+      <div class="auth-feat-icon"
+           style="background:var(--yellow-glow);color:var(--yellow);">🚚</div>
+      <div class="auth-feat-text">
+        <strong>Gestion fournisseurs</strong>
+        Contacts et historique des approvisionnements
+      </div>
+    </div>
+
+    <div class="auth-cats">
+      <span class="auth-cat-tag">🥩 Alimentaire</span>
+      <span class="auth-cat-tag">👔 Textile</span>
+      <span class="auth-cat-tag">💻 Électronique</span>
+      <span class="auth-cat-tag">💊 Pharmacie</span>
+      <span class="auth-cat-tag">🧱 BTP</span>
+      <span class="auth-cat-tag">+ Autre</span>
+    </div>
+  </div>
+
+  <!-- Côté droit -->
+  <div class="auth-right">
+    <div class="auth-box">
+
+      <!-- Onglets -->
+      <div class="auth-tabs">
+        <button class="auth-tab active" id="tab-login"
+                onclick="switchTab('login')">Connexion</button>
+        <button class="auth-tab" id="tab-register"
+                onclick="switchTab('register')">Inscription</button>
+      </div>
+
+      <!-- Erreur -->
+      <div id="auth-error" class="auth-error"></div>
+
+      <!-- Formulaire Connexion -->
+      <div id="form-login">
+        <div class="auth-title">Bon retour 👋</div>
+        <div class="auth-sub">Connectez-vous à votre espace StockPro</div>
+        <div class="fg">
+          <label>Email</label>
+          <input id="login-email" type="email" placeholder="vous@email.com"
+                 onkeydown="if(event.key==='Enter') doLogin()"/>
+        </div>
+        <div class="fg">
+          <label>Mot de passe</label>
+          <input id="login-pwd" type="password" placeholder="••••••••"
+                 onkeydown="if(event.key==='Enter') doLogin()"/>
+        </div>
+        <button class="btn-auth" id="btn-login" onclick="doLogin()">
+          Se connecter
+        </button>
+        <div class="auth-switch">
+          Pas de compte ?
+          <button onclick="switchTab('register')">Créer un compte</button>
+        </div>
+      </div>
+
+      <!-- Formulaire Inscription -->
+      <div id="form-register" style="display:none;">
+        <div class="auth-title">Créer un compte</div>
+        <div class="auth-sub">Rejoignez StockPro gratuitement</div>
+        <div class="frow2">
+          <div class="fg">
+            <label>Prénom</label>
+            <input id="reg-prenom" placeholder="Moussa"/>
+          </div>
+          <div class="fg">
+            <label>Nom</label>
+            <input id="reg-nom" placeholder="Diallo"/>
+          </div>
+        </div>
+        <div class="fg">
+          <label>Email</label>
+          <input id="reg-email" type="email" placeholder="vous@email.com"/>
+        </div>
+        <div class="fg">
+          <label>Mot de passe</label>
+          <input id="reg-pwd" type="password" placeholder="Minimum 6 caractères"/>
+        </div>
+        <button class="btn-auth" id="btn-register" onclick="doRegister()">
+          Créer mon compte
+        </button>
+        <div class="auth-switch">
+          Déjà un compte ?
+          <button onclick="switchTab('login')">Se connecter</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ===== APP SCREEN ===== -->
+<div id="app-screen" style="display:none;">
+
+  <!-- Mobile Topbar -->
+  <div class="mobile-topbar">
+    <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);">
+      Stock<span style="color:var(--blue);">Pro</span>
+    </div>
+    <button class="hamburger" style="display:flex;" onclick="openDrawer()">☰</button>
+  </div>
+
+  <!-- Drawer Overlay -->
+  <div class="drawer-overlay" id="drawer-overlay" onclick="closeDrawer()"></div>
+
+  <!-- Drawer -->
+  <div class="drawer" id="drawer">
+    <div style="padding:20px 16px;border-bottom:1px solid var(--border);">
+      <div style="font-family:var(--mono);font-size:16px;font-weight:700;color:var(--text);">
+        Stock<span style="color:var(--blue);">Pro</span>
+      </div>
+    </div>
+    <div style="padding:12px;flex:1;">
+      <div class="nav-label">Navigation</div>
+      <button class="nav-item active" onclick="gotoPage('dashboard')">
+        <span class="ni">📊</span>Dashboard
+      </button>
+      <button class="nav-item" onclick="gotoPage('produits')">
+        <span class="ni">📦</span>Produits
+      </button>
+      <button class="nav-item" onclick="gotoPage('mouvements')">
+        <span class="ni">🔄</span>Mouvements
+      </button>
+      <button class="nav-item" onclick="gotoPage('fournisseurs')">
+        <span class="ni">🚚</span>Fournisseurs
+      </button>
+      <button class="nav-item" onclick="gotoPage('alertes')">
+        <span class="ni">🔔</span>Alertes
+        <span class="nav-badge" id="drawer-badge-alertes"
+              style="display:none;">0</span>
+      </button>
+      <button class="nav-item" onclick="gotoPage('utilisateurs')">
+        <span class="ni">👥</span>Utilisateurs
+      </button>
+    </div>
+    <div style="padding:12px;border-top:1px solid var(--border);">
+      <button class="nav-item" style="color:var(--red);" onclick="doLogout()">
+        <span class="ni">🚪</span>Déconnexion
+      </button>
+    </div>
+  </div>
+
+  <!-- Layout principal -->
+  <div class="layout">
+
+    <!-- SIDEBAR -->
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-icon">📦</div>
+        <div>
+          <div class="brand-name">Stock<span>Pro</span></div>
+          <div class="brand-version">v1.0</div>
+        </div>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Principal</div>
+        <button class="nav-item active" id="nav-dashboard"
+                onclick="showPage('dashboard')">
+          <span class="ni">📊</span>Dashboard
+        </button>
+        <button class="nav-item" id="nav-produits"
+                onclick="showPage('produits')">
+          <span class="ni">📦</span>Produits
+        </button>
+        <button class="nav-item" id="nav-mouvements"
+                onclick="showPage('mouvements')">
+          <span class="ni">🔄</span>Mouvements
+        </button>
+      </div>
+
+      <div class="nav-section">
+        <div class="nav-label">Gestion</div>
+        <button class="nav-item" id="nav-fournisseurs"
+                onclick="showPage('fournisseurs')">
+          <span class="ni">🚚</span>Fournisseurs
+        </button>
+        <button class="nav-item" id="nav-alertes"
+                onclick="showPage('alertes')">
+          <span class="ni">🔔</span>Alertes
+          <span class="nav-badge" id="badge-alertes" style="display:none;">0</span>
+        </button>
+        <button class="nav-item" id="nav-utilisateurs"
+                onclick="showPage('utilisateurs')">
+          <span class="ni">👥</span>Utilisateurs
+        </button>
+      </div>
+
+      <div class="sidebar-footer">
+        <div class="user-info">
+          <div class="user-av" id="user-av">--</div>
+          <div style="flex:1;min-width:0;">
+            <div class="user-name" id="user-name">--</div>
+            <div class="user-role">Gestionnaire</div>
+          </div>
+          <button class="btn-logout" onclick="doLogout()" title="Déconnexion">
+            🚪
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN -->
+    <div class="main">
+
+      <!-- Topbar -->
+      <div class="topbar">
+        <div class="topbar-left">
+          <div class="topbar-title" id="topbar-title">Dashboard</div>
+        </div>
+        <div class="topbar-right">
+          <div class="topbar-search">
+            <span style="color:var(--text3);">🔍</span>
+            <input type="text" placeholder="Rechercher un produit..."
+                   id="search-input" oninput="handleSearch()"/>
+          </div>
+          <button class="btn btn-primary btn-sm"
+                  onclick="openModal('modal-mouvement')">+ Mouvement</button>
+        </div>
+      </div>
+
+      <!-- Pages -->
+      <div class="content">
+
+        <!-- DASHBOARD -->
+        <div class="page active" id="page-dashboard">
+          <div class="sh">
+            <div>
+              <div class="sh-title">Tableau de bord</div>
+              <div class="sh-sub" id="dash-date"></div>
+            </div>
+            <button class="btn btn-primary"
+                    onclick="openModal('modal-produit')">+ Nouveau produit</button>
+          </div>
+
+          <div class="stats-row">
+            <div class="stat-card blue">
+              <div class="sc-icon">📦</div>
+              <div class="sc-label">Total produits</div>
+              <div class="sc-val" id="ds-total">0</div>
+              <div class="sc-sub">références actives</div>
+            </div>
+            <div class="stat-card green">
+              <div class="sc-icon">✅</div>
+              <div class="sc-label">En stock</div>
+              <div class="sc-val" id="ds-ok">0</div>
+              <div class="sc-sub">niveau normal</div>
+            </div>
+            <div class="stat-card orange">
+              <div class="sc-icon">⚠️</div>
+              <div class="sc-label">Stock faible</div>
+              <div class="sc-val" id="ds-faible">0</div>
+              <div class="sc-sub">sous le seuil</div>
+            </div>
+            <div class="stat-card red">
+              <div class="sc-icon">🚨</div>
+              <div class="sc-label">Rupture</div>
+              <div class="sc-val" id="ds-rupture">0</div>
+              <div class="sc-sub">stock épuisé</div>
+            </div>
+          </div>
+
+          <div class="grid2">
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Alertes récentes</div>
+                <button class="btn btn-ghost btn-sm"
+                        onclick="showPage('alertes')">Voir tout →</button>
+              </div>
+              <div class="card-body" id="dash-alertes"></div>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div class="card-title">Mouvements récents</div>
+                <button class="btn btn-ghost btn-sm"
+                        onclick="showPage('mouvements')">Voir tout →</button>
+              </div>
+              <div class="card-body" id="dash-mouvements"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div class="card-title">Répartition par catégorie</div>
+            </div>
+            <div class="card-body" id="dash-categories"
+                 style="display:flex;flex-wrap:wrap;gap:12px;"></div>
+          </div>
+        </div>
+
+        <!-- PRODUITS -->
+        <div class="page" id="page-produits">
+          <div class="sh">
+            <div>
+              <div class="sh-title">Produits</div>
+              <div class="sh-sub" id="produits-count"></div>
+            </div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <select id="filter-cat" onchange="renderProduits()"
+                      style="padding:7px 12px;border-radius:var(--rsm);
+                             border:1px solid var(--border2);
+                             background:var(--bg3);color:var(--text);
+                             font-size:13px;font-family:var(--font);">
+                <option value="">Toutes catégories</option>
+                <option>Alimentaire</option>
+                <option>Vêtements / Textile</option>
+                <option>Informatique / Électronique</option>
+                <option>Pharmacie / Santé</option>
+                <option>Matériaux / BTP</option>
+                <option>Autre</option>
+              </select>
+              <select id="filter-statut" onchange="renderProduits()"
+                      style="padding:7px 12px;border-radius:var(--rsm);
+                             border:1px solid var(--border2);
+                             background:var(--bg3);color:var(--text);
+                             font-size:13px;font-family:var(--font);">
+                <option value="">Tous statuts</option>
+                <option>Normal</option>
+                <option>Faible</option>
+                <option>Rupture</option>
+              </select>
+              <button class="btn btn-primary"
+                      onclick="openModal('modal-produit')">+ Ajouter</button>
+            </div>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Produit</th>
+                    <th>Catégorie</th>
+                    <th>Fournisseur</th>
+                    <th>Stock</th>
+                    <th>Seuil</th>
+                    <th>Prix unit.</th>
+                    <th>Statut</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-produits"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- MOUVEMENTS -->
+        <div class="page" id="page-mouvements">
+          <div class="sh">
+            <div>
+              <div class="sh-title">Mouvements de stock</div>
+              <div class="sh-sub">Entrées et sorties enregistrées</div>
+            </div>
+            <button class="btn btn-primary"
+                    onclick="openModal('modal-mouvement')">+ Enregistrer</button>
+          </div>
+          <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+            <select id="filter-type" onchange="renderMouvements()"
+                    style="padding:7px 12px;border-radius:var(--rsm);
+                           border:1px solid var(--border2);
+                           background:var(--bg3);color:var(--text);
+                           font-size:13px;font-family:var(--font);">
+              <option value="">Tous types</option>
+              <option>Entrée</option>
+              <option>Sortie</option>
+            </select>
+          </div>
+          <div class="card">
+            <div class="table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Produit</th>
+                    <th>Type</th>
+                    <th>Quantité</th>
+                    <th>Motif</th>
+                    <th>Opérateur</th>
+                  </tr>
+                </thead>
+                <tbody id="tbody-mouvements"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- FOURNISSEURS -->
+        <div class="page" id="page-fournisseurs">
+          <div class="sh">
+            <div>
+              <div class="sh-title">Fournisseurs</div>
+              <div class="sh-sub" id="fourn-count"></div>
+            </div>
+            <button class="btn btn-primary"
+                    onclick="openModal('modal-fournisseur')">+ Ajouter</button>
+          </div>
+          <div class="grid2" id="liste-fournisseurs"></div>
+        </div>
+
+        <!-- ALERTES -->
+        <div class="page" id="page-alertes">
+          <div class="sh">
+            <div>
+              <div class="sh-title">Alertes stock</div>
+              <div class="sh-sub">Produits sous le seuil d'alerte</div>
+            </div>
+          </div>
+          <div id="liste-alertes"></div>
+        </div>
+
+        <!-- UTILISATEURS -->
+        <div class="page" id="page-utilisateurs">
+          <div class="sh">
+            <div>
+              <div class="sh-title">Utilisateurs</div>
+              <div class="sh-sub">Comptes ayant accès à StockPro</div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-body" style="text-align:center;padding:40px;">
+              <div style="font-size:40px;margin-bottom:12px;">👥</div>
+              <div style="font-size:14px;margin-bottom:8px;font-weight:600;">
+                Gestion multi-utilisateurs
+              </div>
+              <div style="font-size:12px;color:var(--text2);">
+                Invitez des collaborateurs via Supabase<br/>
+                Authentication → Users dans votre dashboard.
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div><!-- /content -->
+    </div><!-- /main -->
+  </div><!-- /layout -->
+
+  <!-- Mobile Nav -->
+  <div class="mobile-nav">
+    <div class="mobile-nav-inner">
+      <button class="mnav-btn active" id="mnav-dashboard"
+              onclick="gotoPage('dashboard')">
+        <span class="mnav-icon">📊</span>Board
+      </button>
+      <button class="mnav-btn" id="mnav-produits"
+              onclick="gotoPage('produits')">
+        <span class="mnav-icon">📦</span>Produits
+      </button>
+      <button class="mnav-btn" id="mnav-mouvements"
+              onclick="gotoPage('mouvements')">
+        <span class="mnav-icon">🔄</span>Mouvements
+      </button>
+      <button class="mnav-btn" id="mnav-alertes"
+              onclick="gotoPage('alertes')">
+        <span class="mnav-icon">🔔</span>Alertes
+        <span class="mnav-dot" id="mnav-dot-alertes" style="display:none;"></span>
+      </button>
+      <button class="mnav-btn" id="mnav-fournisseurs"
+              onclick="gotoPage('fournisseurs')">
+        <span class="mnav-icon">🚚</span>Fourn.
+      </button>
+    </div>
+  </div>
+
+</div><!-- /app-screen -->
+
+<!-- ===== MODALS ===== -->
+
+<!-- Modal Produit -->
+<div class="overlay" id="modal-produit">
+  <div class="modal">
+    <div class="modal-title" id="modal-produit-title">Nouveau produit</div>
+    <input type="hidden" id="p-id"/>
+    <div class="frow2">
+      <div class="fg">
+        <label>Nom du produit *</label>
+        <input id="p-nom" placeholder="Ex: Riz Parfumé 5kg"/>
+      </div>
+      <div class="fg">
+        <label>Référence</label>
+        <input id="p-ref" placeholder="REF-001"/>
+      </div>
+    </div>
+    <div class="frow2">
+      <div class="fg">
+        <label>Catégorie *</label>
+        <select id="p-cat">
+          <option value="">— Choisir —</option>
+          <option>Alimentaire</option>
+          <option>Vêtements / Textile</option>
+          <option>Informatique / Électronique</option>
+          <option>Pharmacie / Santé</option>
+          <option>Matériaux / BTP</option>
+          <option>Autre</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Fournisseur</label>
+        <select id="p-fourn">
+          <option value="">— Aucun —</option>
+        </select>
+      </div>
+    </div>
+    <div class="frow2">
+      <div class="fg">
+        <label>Stock initial *</label>
+        <input id="p-stock" type="number" min="0" placeholder="0"/>
+      </div>
+      <div class="fg">
+        <label>Seuil d'alerte *</label>
+        <input id="p-seuil" type="number" min="0" placeholder="10"/>
+      </div>
+    </div>
+    <div class="frow2">
+      <div class="fg">
+        <label>Prix unitaire (FCFA)</label>
+        <input id="p-prix" type="number" min="0" placeholder="0"/>
+      </div>
+      <div class="fg">
+        <label>Unité</label>
+        <input id="p-unite" placeholder="kg, pièce, litre..."/>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Description</label>
+      <textarea id="p-desc" rows="2" placeholder="Description optionnelle..."
+                style="resize:none;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"
+              onclick="closeModal('modal-produit')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveProduit()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Mouvement -->
+<div class="overlay" id="modal-mouvement">
+  <div class="modal">
+    <div class="modal-title">Enregistrer un mouvement</div>
+    <div class="fg">
+      <label>Produit *</label>
+      <select id="m-produit">
+        <option value="">— Choisir un produit —</option>
+      </select>
+    </div>
+    <div class="frow2">
+      <div class="fg">
+        <label>Type *</label>
+        <select id="m-type">
+          <option value="Entrée">📥 Entrée (approvisionnement)</option>
+          <option value="Sortie">📤 Sortie (vente / utilisation)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Quantité *</label>
+        <input id="m-qte" type="number" min="1" placeholder="0"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Motif</label>
+      <input id="m-motif" placeholder="Ex: Livraison fournisseur, Vente client..."/>
+    </div>
+    <div class="fg">
+      <label>Date</label>
+      <input id="m-date" type="date"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"
+              onclick="closeModal('modal-mouvement')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveMouvement()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Fournisseur -->
+<div class="overlay" id="modal-fournisseur">
+  <div class="modal">
+    <div class="modal-title">Nouveau fournisseur</div>
+    <input type="hidden" id="f-id"/>
+    <div class="frow2">
+      <div class="fg">
+        <label>Nom *</label>
+        <input id="f-nom" placeholder="Nom de l'entreprise"/>
+      </div>
+      <div class="fg">
+        <label>Contact</label>
+        <input id="f-contact" placeholder="Nom du contact"/>
+      </div>
+    </div>
+    <div class="frow2">
+      <div class="fg">
+        <label>Téléphone</label>
+        <input id="f-tel" placeholder="77 XXX XX XX"/>
+      </div>
+      <div class="fg">
+        <label>Email</label>
+        <input id="f-email" type="email" placeholder="email@ex.com"/>
+      </div>
+    </div>
+    <div class="fg">
+      <label>Catégories fournies</label>
+      <input id="f-cats" placeholder="Ex: Alimentaire, Textile..."/>
+    </div>
+    <div class="fg">
+      <label>Adresse</label>
+      <input id="f-adresse" placeholder="Adresse ou ville"/>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost"
+              onclick="closeModal('modal-fournisseur')">Annuler</button>
+      <button class="btn btn-primary" onclick="saveFournisseur()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<!-- JS -->
+<script src="js/config.js"></script>
+<script src="js/state.js"></script>
+<script src="js/auth.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/render.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

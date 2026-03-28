@@ -1,0 +1,75 @@
+@media (max-width: 768px) {
+
+  /* ===== LAYOUT ===== */
+  .sidebar       { display: none; }
+  .topbar        { display: none; }
+  .mobile-topbar { display: flex; }
+  .mobile-nav    { display: block; }
+  .layout        { flex-direction: column; }
+  .main          { padding-bottom: 60px; width: 100%; overflow-x: hidden; }
+  .content       { padding: 12px 12px 80px; max-width: 100%; }
+
+  /* ===== GRIDS ===== */
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .grid2     { grid-template-columns: 1fr; }
+  .frow2     { grid-template-columns: 1fr; }
+
+  /* ===== CARDS ===== */
+  .card      { padding: 0; }
+  .stat-card { padding: 12px 14px; }
+  .sc-val    { font-size: 20px; }
+
+  /* ===== TOPBAR SEARCH ===== */
+  .topbar-search { display: none; }
+
+  /* ===== TABLES ===== */
+  .table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table       { font-size: 12px; min-width: 500px; }
+  th, td      { padding: 8px 10px; }
+
+  /* ===== TITRES ===== */
+  .sh        { flex-wrap: wrap; gap: 8px; }
+  .sh-title  { font-size: 15px; }
+  .card-title{ font-size: 14px; }
+
+  /* ===== MODAL ===== */
+  .overlay {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal {
+    border-radius: var(--r) var(--r) 0 0;
+    max-height: 92vh;
+    max-width: 100%;
+    padding: 20px 16px;
+  }
+
+  .modal-footer { flex-wrap: wrap; }
+  .modal-footer .btn { flex: 1; text-align: center; }
+
+  /* ===== BOUTONS ===== */
+  .btn { padding: 9px 14px; font-size: 13px; }
+
+  /* ===== TOAST ===== */
+  .toast {
+    bottom: 70px;
+    right: 8px;
+    left: 8px;
+    text-align: center;
+    font-size: 12px;
+  }
+
+  /* ===== ALERTES ===== */
+  .alert-item      { flex-wrap: wrap; gap: 8px; }
+  .alert-item .btn { width: 100%; margin-top: 4px; }
+
+  /* ===== AUTH ===== */
+  #auth-screen              { flex-direction: column !important; }
+  .auth-left                { flex: none !important; padding: 28px 20px 20px !important; }
+  .auth-cats                { display: none; }
+  .auth-feature:nth-child(n+3) { display: none; }
+  .auth-tagline             { margin-bottom: 16px !important; font-size: 13px !important; }
+  .auth-right               { width: 100% !important; padding: 16px !important; }
+  .auth-box                 { max-width: 100%; }
+}
