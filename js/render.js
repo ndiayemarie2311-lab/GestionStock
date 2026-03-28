@@ -694,7 +694,7 @@ function renderCategories() {
                         ${s.label}
                       </span>
                       <button class="btn btn-ghost btn-sm btn-icon"
-                              onclick="editProduit('${p.id}')"
+                              onclick="openEditProduit('${p.id}')"
                               title="Modifier">✏️</button>
                     </div>`;
                 }).join('')

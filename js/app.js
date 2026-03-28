@@ -418,3 +418,26 @@ function filtrerParCategorie(nom) {
   document.getElementById('filter-cat').value = nom;
   renderProduits();
 }
+
+// ===== EDIT PRODUIT DEPUIS CATEGORIES =====
+function openEditProduit(id) {
+  populateFourniSelect();
+  populateCategoriesSelect('p-cat');
+  
+  const p = getProduit(id);
+  if (!p) return;
+
+  document.getElementById('p-id').value    = p.id;
+  document.getElementById('p-nom').value   = p.nom;
+  document.getElementById('p-ref').value   = p.ref         || '';
+  document.getElementById('p-cat').value   = p.cat;
+  document.getElementById('p-fourn').value = p.fourn_id    || '';
+  document.getElementById('p-stock').value = p.stock;
+  document.getElementById('p-seuil').value = p.seuil;
+  document.getElementById('p-prix').value  = p.prix        || '';
+  document.getElementById('p-unite').value = p.unite       || '';
+  document.getElementById('p-desc').value  = p.description || '';
+  document.getElementById('modal-produit-title').textContent = 'Modifier le produit';
+
+  document.getElementById('modal-produit').classList.add('open');
+}
