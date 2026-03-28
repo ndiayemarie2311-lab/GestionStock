@@ -147,40 +147,23 @@ async function bootApp(user) {
 
   showApp();
 
-  // Charger les données depuis Supabase
+  // Afficher loading sur toutes les pages
+  document.getElementById('page-dashboard').innerHTML =
+    `<div style="text-align:center;padding:60px;color:var(--text2);">
+       <div style="font-size:32px;margin-bottom:12px;">⏳</div>
+       <div style="font-size:14px;">Chargement des données...</div>
+     </div>`;
+
+  // Charger toutes les données
   await charger();
 
-  // Si pas de données, insérer les données demo
+  // Si pas de données demo
   if (!state.produits.length) {
     await initDemoData();
   }
 
-  // Afficher le dashboard
+  // Restaurer et afficher dashboard
+  document.getElementById('page-dashboard').innerHTML = '';
   renderDashboard();
   updateBadges();
-
-  // Vérifier les alertes et envoyer email si nécessaire
-  setTimeout(() => verifierEtEnvoyerAlertes(), 3000);
 }
-
-// ===== INITIALISATION =====
-window.addEventListener('load', async () => {
-  const { data: { session } } = await supa.auth.getSession();
-
-  if (session && session.user) {
-    const meta = session.user.user_metadata || {};
-    await bootApp({
-      id    : session.user.id,
-      email : session.user.email,
-      prenom: meta.prenom || '',
-      nom   : meta.nom    || ''
-    });
-  } else {
-    showAuth();
-  }
-
-  // Écouter les changements de session
-  supa.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') showAuth();
-  });
-});

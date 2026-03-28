@@ -33,9 +33,7 @@ function showPage(id) {
   if (id === 'alertes')      renderAlertes();
   if (id === 'categories')   renderCategories();
   if (id === 'historique')   renderHistorique();
- if (id === 'rapport') {
-    setTimeout(() => renderRapport(), 500);
-  }  
+  if (id === 'rapport')      renderRapport();
   if (id === 'utilisateurs') renderUtilisateurs().catch(console.error);
 }
 
