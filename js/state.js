@@ -5,6 +5,7 @@ const state = {
   mouvements   : [],
   fournisseurs : [],
   categories   : [],
+  commandes    : [],
   currentUser  : null,
   searchQuery  : ''
 };
@@ -41,13 +42,18 @@ async function charger() {
     state.produits = produits || [];
 
     // Mouvements
-    const { data: mouvements, error: em } = await supa
+    const { data: mouvements } = await supa
       .from('mouvements')
       .select('*')
       .order('created_at', { ascending: true });
-
-    if (em) throw em;
     state.mouvements = mouvements || [];
+
+    // Commandes
+    const { data: commandes } = await supa
+      .from('commandes')
+      .select('*, commande_lignes(*)')
+      .order('created_at', { ascending: false });
+    state.commandes = commandes || [];
 
     return true;
   } catch(e) {

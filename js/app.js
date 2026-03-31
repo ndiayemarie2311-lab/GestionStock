@@ -1399,3 +1399,258 @@ async function validerInventaire() {
   renderDashboard();
   updateBadges();
 }
+
+// ===== CRUD COMMANDES =====
+let cmdLignes = [];
+
+function openModalCommande() {
+  cmdLignes = [];
+  document.getElementById('cmd-id').value       = '';
+  document.getElementById('cmd-fourn').innerHTML =
+    '<option value="">— Choisir —</option>' +
+    state.fournisseurs.map(f =>
+      `<option value="${f.id}">${f.nom}</option>`
+    ).join('');
+  document.getElementById('cmd-date').value =
+    new Date().toISOString().split('T')[0];
+  document.getElementById('cmd-date-livraison').value = '';
+  document.getElementById('cmd-statut').value   = 'En attente';
+  document.getElementById('cmd-notes').value    = '';
+  document.getElementById('cmd-total-display').textContent = '0 F';
+  document.getElementById('modal-cmd-title').textContent   = 'Nouvelle commande';
+  renderLignesCommande();
+  openModal('modal-commande');
+}
+
+function ajouterLigneCommande() {
+  cmdLignes.push({ produit_id: '', quantite: 1, prix_unit: 0 });
+  renderLignesCommande();
+}
+
+function supprimerLigne(idx) {
+  cmdLignes.splice(idx, 1);
+  renderLignesCommande();
+}
+
+function renderLignesCommande() {
+  const container = document.getElementById('cmd-lignes');
+
+  if (!cmdLignes.length) {
+    container.innerHTML =
+      `<div style="text-align:center;padding:16px;color:var(--text3);
+                   font-size:13px;border:1px dashed var(--border2);
+                   border-radius:var(--rsm);">
+         Aucun produit — cliquez sur "+ Ajouter un produit"
+       </div>`;
+    return;
+  }
+
+  container.innerHTML = cmdLignes.map((l, i) => `
+    <div style="display:grid;grid-template-columns:1fr 80px 100px 30px;
+                gap:8px;margin-bottom:8px;align-items:center;">
+      <select onchange="updateLigne(${i}, 'produit_id', this.value)"
+              style="padding:8px 10px;border-radius:var(--rsm);
+                     border:1px solid var(--border2);background:var(--bg3);
+                     color:var(--text);font-size:12px;font-family:var(--font);">
+        <option value="">— Produit —</option>
+        ${state.produits.map(p =>
+          `<option value="${p.id}"
+                   ${l.produit_id === p.id ? 'selected' : ''}>
+             ${p.nom}
+           </option>`
+        ).join('')}
+      </select>
+      <input type="number" min="1" value="${l.quantite}"
+             placeholder="Qté"
+             onchange="updateLigne(${i}, 'quantite', this.value)"
+             style="padding:8px 10px;border-radius:var(--rsm);
+                    border:1px solid var(--border2);background:var(--bg3);
+                    color:var(--text);font-size:12px;font-family:var(--mono);
+                    outline:none;"/>
+      <input type="number" min="0" value="${l.prix_unit}"
+             placeholder="Prix"
+             onchange="updateLigne(${i}, 'prix_unit', this.value)"
+             style="padding:8px 10px;border-radius:var(--rsm);
+                    border:1px solid var(--border2);background:var(--bg3);
+                    color:var(--text);font-size:12px;font-family:var(--mono);
+                    outline:none;"/>
+      <button onclick="supprimerLigne(${i})"
+              style="background:var(--red-glow);border:1px solid rgba(239,68,68,0.3);
+                     color:var(--red);border-radius:var(--rsm);
+                     width:30px;height:30px;cursor:pointer;font-size:14px;">
+        ×
+      </button>
+    </div>`
+  ).join('');
+
+  calculerTotal();
+}
+
+function updateLigne(idx, champ, val) {
+  if (champ === 'produit_id') {
+    cmdLignes[idx].produit_id = val;
+    const p = getProduit(val);
+    if (p && !cmdLignes[idx].prix_unit) {
+      cmdLignes[idx].prix_unit = p.prix || 0;
+      renderLignesCommande();
+    }
+  } else if (champ === 'quantite') {
+    cmdLignes[idx].quantite = parseInt(val) || 0;
+  } else if (champ === 'prix_unit') {
+    cmdLignes[idx].prix_unit = parseInt(val) || 0;
+  }
+  calculerTotal();
+}
+
+function calculerTotal() {
+  const total = cmdLignes.reduce((sum, l) =>
+    sum + (l.quantite * l.prix_unit), 0);
+  document.getElementById('cmd-total-display').textContent = fmtPrix(total);
+  return total;
+}
+
+async function saveCommande() {
+  const fourniId = document.getElementById('cmd-fourn').value;
+  if (!fourniId) {
+    toast('Fournisseur requis', 'error');
+    return;
+  }
+
+  if (!cmdLignes.length) {
+    toast('Ajoutez au moins un produit', 'error');
+    return;
+  }
+
+  const total = calculerTotal();
+  const id    = document.getElementById('cmd-id').value;
+
+  const data = {
+    fourn_id       : fourniId,
+    statut         : document.getElementById('cmd-statut').value,
+    date_commande  : document.getElementById('cmd-date').value,
+    date_livraison : document.getElementById('cmd-date-livraison').value || null,
+    notes          : document.getElementById('cmd-notes').value.trim(),
+    total
+  };
+
+  if (id) {
+    // Modifier
+    await supa.from('commandes').update(data).eq('id', id);
+    await supa.from('commande_lignes').delete().eq('commande_id', id);
+    await supa.from('commande_lignes').insert(
+      cmdLignes.map(l => ({ ...l, commande_id: id }))
+    );
+    toast('Commande modifiée ✓');
+  } else {
+    // Créer
+    const { data: cmd } = await supa
+      .from('commandes')
+      .insert([{ ...data, user_id: state.currentUser.id }])
+      .select();
+
+    if (cmd && cmd[0]) {
+      await supa.from('commande_lignes').insert(
+        cmdLignes.map(l => ({ ...l, commande_id: cmd[0].id }))
+      );
+    }
+    toast('Commande créée ✓');
+  }
+
+  await charger();
+  closeModal('modal-commande');
+  renderCommandes();
+  updateBadgesCommandes();
+}
+
+async function editCommande(id) {
+  const c = state.commandes.find(cmd => cmd.id === id);
+  if (!c) return;
+
+  cmdLignes = (c.commande_lignes || []).map(l => ({
+    produit_id: l.produit_id,
+    quantite  : l.quantite,
+    prix_unit : l.prix_unit
+  }));
+
+  document.getElementById('cmd-id').value       = c.id;
+  document.getElementById('cmd-fourn').innerHTML =
+    '<option value="">— Choisir —</option>' +
+    state.fournisseurs.map(f =>
+      `<option value="${f.id}" ${f.id === c.fourn_id ? 'selected' : ''}>
+         ${f.nom}
+       </option>`
+    ).join('');
+  document.getElementById('cmd-date').value          = c.date_commande   || '';
+  document.getElementById('cmd-date-livraison').value= c.date_livraison  || '';
+  document.getElementById('cmd-statut').value        = c.statut;
+  document.getElementById('cmd-notes').value         = c.notes           || '';
+  document.getElementById('modal-cmd-title').textContent = 'Modifier la commande';
+
+  renderLignesCommande();
+  openModal('modal-commande');
+}
+
+async function livrerCommande(id) {
+  const c = state.commandes.find(cmd => cmd.id === id);
+  if (!c) return;
+
+  if (!confirm('Marquer cette commande comme livrée et mettre à jour les stocks ?'))
+    return;
+
+  // Mettre à jour le statut
+  await supa.from('commandes')
+    .update({ statut: 'Livrée' })
+    .eq('id', id);
+
+  // Mettre à jour les stocks
+  const lignes = c.commande_lignes || [];
+  for (const l of lignes) {
+    const p = getProduit(l.produit_id);
+    if (!p) continue;
+
+    const nouveauStock = p.stock + l.quantite;
+
+    await supa.from('produits')
+      .update({ stock: nouveauStock })
+      .eq('id', l.produit_id);
+
+    await supa.from('mouvements').insert([{
+      user_id   : state.currentUser.id,
+      produit_id: l.produit_id,
+      type      : 'Entrée',
+      qte       : l.quantite,
+      motif     : `Livraison commande fournisseur`,
+      date      : new Date().toISOString().split('T')[0],
+      operateur : state.currentUser?.prenom || 'Admin'
+    }]);
+
+    p.stock = nouveauStock;
+  }
+
+  await charger();
+  renderCommandes();
+  renderDashboard();
+  updateBadges();
+  toast('Commande livrée — stocks mis à jour ✓');
+}
+
+async function deleteCommande(id) {
+  if (!confirm('Supprimer cette commande ?')) return;
+
+  await supa.from('commande_lignes').delete().eq('commande_id', id);
+  await supa.from('commandes').delete().eq('id', id);
+
+  state.commandes = state.commandes.filter(c => c.id !== id);
+  renderCommandes();
+  updateBadgesCommandes();
+  toast('Commande supprimée');
+}
+
+function updateBadgesCommandes() {
+  const nb  = state.commandes.filter(c => c.statut === 'En attente').length;
+  const el  = document.getElementById('badge-commandes');
+  if (el) {
+    el.textContent   = nb;
+    el.style.display = nb > 0 ? 'inline' : 'none';
+  }
+}

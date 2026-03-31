@@ -1296,3 +1296,150 @@ function updateInventaireRow(id) {
   document.getElementById('inv-ecarts').textContent    = ecarts;
   document.getElementById('inv-restants').textContent  = nonComptes;
 }
+
+// ===== RENDER COMMANDES =====
+function renderCommandes() {
+  const statutF = document.getElementById('cmd-filter-statut')?.value || '';
+
+  // Stats
+  document.getElementById('cmd-total').textContent =
+    state.commandes.length;
+  document.getElementById('cmd-attente').textContent =
+    state.commandes.filter(c => c.statut === 'En attente').length;
+  document.getElementById('cmd-cours').textContent =
+    state.commandes.filter(c => c.statut === 'En cours').length;
+  document.getElementById('cmd-livrees').textContent =
+    state.commandes.filter(c => c.statut === 'Livrée').length;
+
+  document.getElementById('commandes-count').textContent =
+    `${state.commandes.length} commande${state.commandes.length > 1 ? 's' : ''}`;
+
+  // Filtrer
+  let list = state.commandes.filter(c =>
+    !statutF || c.statut === statutF
+  );
+
+  const container = document.getElementById('liste-commandes');
+
+  if (!list.length) {
+    container.innerHTML = `
+      <div class="empty">
+        <div class="empty-icon">🛒</div>
+        <div class="empty-text">Aucune commande trouvée</div>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = list.map(c => {
+    const fourn  = getFourn(c.fourn_id);
+    const lignes = c.commande_lignes || [];
+
+    const statutColor = {
+      'En attente': 'b-orange',
+      'En cours'  : 'b-blue',
+      'Livrée'    : 'b-green',
+      'Annulée'   : 'b-gray'
+    }[c.statut] || 'b-gray';
+
+    const statutIcon = {
+      'En attente': '⏳',
+      'En cours'  : '🚚',
+      'Livrée'    : '✅',
+      'Annulée'   : '❌'
+    }[c.statut] || '📋';
+
+    return `
+      <div class="card" style="margin-bottom:12px;">
+        <div class="card-header">
+          <div style="display:flex;align-items:center;gap:12px;">
+            <div style="width:42px;height:42px;border-radius:var(--rsm);
+                        background:var(--bg3);border:1px solid var(--border);
+                        display:flex;align-items:center;
+                        justify-content:center;font-size:20px;">
+              ${statutIcon}
+            </div>
+            <div>
+              <div class="card-title">
+                ${fourn ? fourn.nom : 'Fournisseur inconnu'}
+              </div>
+              <div style="font-size:12px;color:var(--text2);margin-top:2px;">
+                Commande du ${fmtDate(c.date_commande)}
+                ${c.date_livraison
+                  ? ` · Livraison prévue : ${fmtDate(c.date_livraison)}`
+                  : ''}
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span class="badge ${statutColor}">
+              ${statutIcon} ${c.statut}
+            </span>
+            <button class="btn btn-ghost btn-sm"
+                    onclick="editCommande('${c.id}')">✏️</button>
+            ${c.statut !== 'Livrée'
+              ? `<button class="btn btn-success btn-sm"
+                         onclick="livrerCommande('${c.id}')">
+                   ✅ Marquer livrée
+                 </button>`
+              : ''}
+            <button class="btn btn-danger btn-sm"
+                    onclick="deleteCommande('${c.id}')">🗑️</button>
+          </div>
+        </div>
+        <div class="card-body">
+          <!-- Lignes produits -->
+          ${lignes.length
+            ? `<div class="table-wrap">
+                 <table>
+                   <thead>
+                     <tr>
+                       <th>Produit</th>
+                       <th>Quantité</th>
+                       <th>Prix unit.</th>
+                       <th>Sous-total</th>
+                     </tr>
+                   </thead>
+                   <tbody>
+                     ${lignes.map(l => {
+                       const p = getProduit(l.produit_id);
+                       return `
+                         <tr>
+                           <td style="font-weight:600;">
+                             ${p ? p.nom : 'Produit supprimé'}
+                           </td>
+                           <td style="font-family:var(--mono);">
+                             ${l.quantite} ${p ? p.unite || '' : ''}
+                           </td>
+                           <td style="font-family:var(--mono);">
+                             ${fmtPrix(l.prix_unit)}
+                           </td>
+                           <td style="font-family:var(--mono);
+                                      font-weight:700;color:var(--blue);">
+                             ${fmtPrix(l.quantite * l.prix_unit)}
+                           </td>
+                         </tr>`;
+                     }).join('')}
+                   </tbody>
+                 </table>
+               </div>`
+            : `<div style="color:var(--text3);font-size:13px;
+                           padding:8px 0;">Aucun produit</div>`}
+
+          <!-- Total et notes -->
+          <div style="display:flex;justify-content:space-between;
+                      align-items:center;margin-top:12px;
+                      padding-top:12px;border-top:1px solid var(--border);">
+            <div style="font-size:12px;color:var(--text2);">
+              ${c.notes
+                ? `📝 ${c.notes}`
+                : ''}
+            </div>
+            <div style="font-family:var(--mono);font-size:16px;
+                        font-weight:700;color:var(--blue);">
+              Total : ${fmtPrix(c.total)}
+            </div>
+          </div>
+        </div>
+      </div>`;
+  }).join('');
+}

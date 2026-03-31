@@ -205,6 +205,9 @@
       <button class="nav-item" onclick="gotoPage('categories')">
         <span class="ni">🏷️</span>Catégories
       </button>
+      <button class="nav-item" onclick="gotoPage('commandes')">
+        <span class="ni">🛒</span>Commandes
+      </button>
       <button class="nav-item" onclick="gotoPage('inventaire')">
         <span class="ni">🔢</span>Inventaire
       </button>
@@ -266,6 +269,11 @@
         <button class="nav-item" id="nav-categories"
                 onclick="showPage('categories')">
           <span class="ni">🏷️</span>Catégories
+        </button>
+        <button class="nav-item" id="nav-commandes"
+                onclick="showPage('commandes')">
+          <span class="ni">🛒</span>Commandes
+          <span class="nav-badge" id="badge-commandes" style="display:none;">0</span>
         </button>
         <button class="nav-item" id="nav-inventaire"
                 onclick="showPage('inventaire')">
@@ -688,6 +696,63 @@
 
   <!-- Liste catégories -->
   <div class="grid2" id="liste-categories"></div>
+</div>
+
+<!-- COMMANDES -->
+<div class="page" id="page-commandes">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Commandes fournisseurs</div>
+      <div class="sh-sub" id="commandes-count"></div>
+    </div>
+    <button class="btn btn-primary"
+            onclick="openModal('modal-commande')">+ Nouvelle commande</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row" style="margin-bottom:16px;">
+    <div class="stat-card blue">
+      <div class="sc-icon">🛒</div>
+      <div class="sc-label">Total commandes</div>
+      <div class="sc-val" id="cmd-total">0</div>
+      <div class="sc-sub">depuis le début</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-icon">⏳</div>
+      <div class="sc-label">En attente</div>
+      <div class="sc-val" id="cmd-attente">0</div>
+      <div class="sc-sub">à traiter</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="sc-icon">🚚</div>
+      <div class="sc-label">En cours</div>
+      <div class="sc-val" id="cmd-cours">0</div>
+      <div class="sc-sub">en livraison</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-icon">✅</div>
+      <div class="sc-label">Livrées</div>
+      <div class="sc-val" id="cmd-livrees">0</div>
+      <div class="sc-sub">reçues</div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <select id="cmd-filter-statut" onchange="renderCommandes()"
+            style="padding:7px 12px;border-radius:var(--rsm);
+                   border:1px solid var(--border2);background:var(--bg3);
+                   color:var(--text);font-size:13px;font-family:var(--font);">
+      <option value="">Tous statuts</option>
+      <option>En attente</option>
+      <option>En cours</option>
+      <option>Livrée</option>
+      <option>Annulée</option>
+    </select>
+  </div>
+
+  <!-- Liste commandes -->
+  <div id="liste-commandes"></div>
 </div>
 
 <!-- INVENTAIRE -->
@@ -1144,6 +1209,81 @@
       <button class="btn btn-ghost"
               onclick="closeModal('modal-mouvement')">Annuler</button>
       <button class="btn btn-primary" onclick="saveMouvement()">Enregistrer</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Commande -->
+<div class="overlay" id="modal-commande">
+  <div class="modal" style="max-width:600px;">
+    <div class="modal-title" id="modal-cmd-title">Nouvelle commande</div>
+    <input type="hidden" id="cmd-id"/>
+
+    <div class="frow2">
+      <div class="fg">
+        <label>Fournisseur *</label>
+        <select id="cmd-fourn">
+          <option value="">— Choisir —</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label>Date de commande</label>
+        <input id="cmd-date" type="date"/>
+      </div>
+    </div>
+
+    <div class="frow2">
+      <div class="fg">
+        <label>Date de livraison prévue</label>
+        <input id="cmd-date-livraison" type="date"/>
+      </div>
+      <div class="fg">
+        <label>Statut</label>
+        <select id="cmd-statut">
+          <option>En attente</option>
+          <option>En cours</option>
+          <option>Livrée</option>
+          <option>Annulée</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Lignes de commande -->
+    <div style="margin-bottom:13px;">
+      <label style="display:block;font-size:12px;font-weight:500;
+                    color:var(--text2);margin-bottom:8px;">
+        Produits commandés
+      </label>
+      <div id="cmd-lignes"></div>
+      <button class="btn btn-ghost btn-sm" style="margin-top:8px;width:100%;"
+              onclick="ajouterLigneCommande()">
+        + Ajouter un produit
+      </button>
+    </div>
+
+    <!-- Total -->
+    <div style="background:var(--bg3);border:1px solid var(--border);
+                border-radius:var(--rsm);padding:12px 16px;
+                display:flex;justify-content:space-between;
+                align-items:center;margin-bottom:13px;">
+      <span style="font-size:13px;color:var(--text2);">Total commande</span>
+      <span id="cmd-total-display"
+            style="font-family:var(--mono);font-size:16px;
+                   font-weight:700;color:var(--blue);">0 F</span>
+    </div>
+
+    <div class="fg">
+      <label>Notes</label>
+      <textarea id="cmd-notes" rows="2"
+                placeholder="Notes ou instructions..."
+                style="resize:none;"></textarea>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost"
+              onclick="closeModal('modal-commande')">Annuler</button>
+      <button class="btn btn-primary"
+              onclick="saveCommande()">Enregistrer</button>
     </div>
   </div>
 </div>
