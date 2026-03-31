@@ -1110,3 +1110,226 @@ function exportRapportPDF() {
   doc.save(`StockPro_Rapport_${new Date().toISOString().split('T')[0]}.pdf`);
   toast('Rapport PDF téléchargé ✓');
 }
+
+// ===== RECHERCHE GLOBALE =====
+function openRechercheGlobale() {
+  openModal('modal-recherche');
+  setTimeout(() => {
+    document.getElementById('global-search-input').focus();
+    document.getElementById('global-search-input').value = '';
+    document.getElementById('global-search-results').innerHTML =
+      `<div style="text-align:center;padding:32px;color:var(--text3);
+                   font-size:13px;">Tapez pour rechercher...</div>`;
+  }, 100);
+}
+
+function rechercheGlobale() {
+  const q = document.getElementById('global-search-input')
+    .value.toLowerCase().trim();
+
+  const container = document.getElementById('global-search-results');
+
+  if (!q || q.length < 2) {
+    container.innerHTML =
+      `<div style="text-align:center;padding:32px;color:var(--text3);
+                   font-size:13px;">Tapez au moins 2 caractères...</div>`;
+    return;
+  }
+
+  let results = [];
+
+  // Chercher dans les produits
+  state.produits
+    .filter(p =>
+      p.nom.toLowerCase().includes(q) ||
+      (p.ref  || '').toLowerCase().includes(q) ||
+      p.cat.toLowerCase().includes(q)
+    )
+    .forEach(p => {
+      const s = stockStatut(p);
+      results.push({
+        type    : 'produit',
+        icon    : '📦',
+        titre   : p.nom,
+        sous    : `${p.cat} · Réf: ${p.ref || '—'} · Stock: ${p.stock} ${p.unite || ''}`,
+        badge   : s.label,
+        badgeCls: s.cls,
+        action  : () => {
+          closeModal('modal-recherche');
+          showPage('produits');
+          state.searchQuery = q;
+          renderProduits();
+        }
+      });
+    });
+
+  // Chercher dans les fournisseurs
+  state.fournisseurs
+    .filter(f =>
+      f.nom.toLowerCase().includes(q) ||
+      (f.contact || '').toLowerCase().includes(q) ||
+      (f.tel     || '').toLowerCase().includes(q) ||
+      (f.email   || '').toLowerCase().includes(q)
+    )
+    .forEach(f => {
+      results.push({
+        type    : 'fournisseur',
+        icon    : '🚚',
+        titre   : f.nom,
+        sous    : `${f.contact || '—'} · ${f.tel || '—'}`,
+        badge   : 'Fournisseur',
+        badgeCls: 'b-blue',
+        action  : () => {
+          closeModal('modal-recherche');
+          showPage('fournisseurs');
+        }
+      });
+    });
+
+  // Chercher dans les mouvements
+  state.mouvements
+    .filter(m => {
+      const p = getProduit(m.produit_id || m.produitId);
+      return (
+        (p && p.nom.toLowerCase().includes(q)) ||
+        (m.motif     || '').toLowerCase().includes(q) ||
+        (m.operateur || '').toLowerCase().includes(q)
+      );
+    })
+    .slice(0, 5)
+    .forEach(m => {
+      const p = getProduit(m.produit_id || m.produitId);
+      results.push({
+        type    : 'mouvement',
+        icon    : m.type === 'Entrée' ? '📥' : '📤',
+        titre   : `${m.type} — ${p ? p.nom : 'Produit supprimé'}`,
+        sous    : `${fmtDate(m.date)} · ${m.motif || '—'} · ${m.operateur || '—'}`,
+        badge   : m.type,
+        badgeCls: m.type === 'Entrée' ? 'b-green' : 'b-red',
+        action  : () => {
+          closeModal('modal-recherche');
+          showPage('historique');
+          document.getElementById('hist-search').value = q;
+          renderHistorique();
+        }
+      });
+    });
+
+  // Chercher dans les catégories
+  state.categories
+    .filter(c => c.nom.toLowerCase().includes(q))
+    .forEach(c => {
+      const nb = state.produits.filter(p => p.cat === c.nom).length;
+      results.push({
+        type    : 'categorie',
+        icon    : c.emoji || '🏷️',
+        titre   : c.nom,
+        sous    : `${nb} produit${nb > 1 ? 's' : ''}`,
+        badge   : 'Catégorie',
+        badgeCls: 'b-gray',
+        action  : () => {
+          closeModal('modal-recherche');
+          filtrerParCategorie(c.nom);
+        }
+      });
+    });
+
+  // Afficher les résultats
+  if (!results.length) {
+    container.innerHTML =
+      `<div style="text-align:center;padding:32px;">
+         <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+         <div style="color:var(--text2);font-size:13px;">
+           Aucun résultat pour "<b>${q}</b>"
+         </div>
+       </div>`;
+    return;
+  }
+
+  // Grouper par type
+  const groupes = {
+    produit     : { label: '📦 Produits',     items: [] },
+    fournisseur : { label: '🚚 Fournisseurs',  items: [] },
+    mouvement   : { label: '🔄 Mouvements',    items: [] },
+    categorie   : { label: '🏷️ Catégories',   items: [] }
+  };
+
+  results.forEach(r => groupes[r.type].items.push(r));
+
+  let html = '';
+  let idx  = 0;
+
+  Object.values(groupes).forEach(groupe => {
+    if (!groupe.items.length) return;
+
+    html += `
+      <div style="padding:8px 12px 4px;font-size:11px;font-weight:600;
+                  color:var(--text3);text-transform:uppercase;
+                  letter-spacing:1px;">
+        ${groupe.label} (${groupe.items.length})
+      </div>`;
+
+    groupe.items.forEach(r => {
+      const i = idx++;
+      html += `
+        <div class="search-result-item" id="sr-${i}"
+             onclick="searchResultClick(${i})"
+             style="display:flex;align-items:center;gap:12px;
+                    padding:10px 12px;border-radius:var(--rsm);
+                    cursor:pointer;transition:background .15s;
+                    margin-bottom:2px;">
+          <div style="width:36px;height:36px;border-radius:var(--rsm);
+                      background:var(--bg3);border:1px solid var(--border);
+                      display:flex;align-items:center;justify-content:center;
+                      font-size:16px;flex-shrink:0;">
+            ${r.icon}
+          </div>
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:var(--text);
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${r.titre}
+            </div>
+            <div style="font-size:11px;color:var(--text2);margin-top:2px;
+                        white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+              ${r.sous}
+            </div>
+          </div>
+          <span class="badge ${r.badgeCls}" style="flex-shrink:0;font-size:10px;">
+            ${r.badge}
+          </span>
+        </div>`;
+    });
+  });
+
+  container.innerHTML = html;
+
+  // Stocker les actions
+  window._searchResults = results;
+
+  // Hover effect
+  container.querySelectorAll('.search-result-item').forEach(el => {
+    el.addEventListener('mouseover', () => {
+      el.style.background = 'var(--bg3)';
+    });
+    el.addEventListener('mouseout', () => {
+      el.style.background = 'transparent';
+    });
+  });
+}
+
+function searchResultClick(idx) {
+  if (window._searchResults && window._searchResults[idx]) {
+    window._searchResults[idx].action();
+  }
+}
+
+// Raccourci clavier Ctrl+K
+document.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    openRechercheGlobale();
+  }
+  if (e.key === 'Escape') {
+    closeModal('modal-recherche');
+  }
+});
