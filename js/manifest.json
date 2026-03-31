@@ -1,0 +1,42 @@
+{
+  "name"            : "StockPro — Gestion de Stock",
+  "short_name"      : "StockPro",
+  "description"     : "Gérez votre inventaire multi-catégories en temps réel",
+  "start_url"       : "/",
+  "display"         : "standalone",
+  "background_color": "#0d0f12",
+  "theme_color"     : "#3b82f6",
+  "orientation"     : "portrait-primary",
+  "icons"           : [
+    {
+      "src"    : "assets/icon-192.png",
+      "sizes"  : "192x192",
+      "type"   : "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src"    : "assets/icon-512.png",
+      "sizes"  : "512x512",
+      "type"   : "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories"      : ["business", "productivity"],
+  "shortcuts"       : [
+    {
+      "name"    : "Dashboard",
+      "url"     : "/?page=dashboard",
+      "description": "Voir le tableau de bord"
+    },
+    {
+      "name"    : "Produits",
+      "url"     : "/?page=produits",
+      "description": "Gérer les produits"
+    },
+    {
+      "name"    : "Alertes",
+      "url"     : "/?page=alertes",
+      "description": "Voir les alertes stock"
+    }
+  ]
+}

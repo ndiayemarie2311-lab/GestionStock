@@ -162,3 +162,12 @@ async function bootApp(user) {
   renderDashboard();
   updateBadges();
 }
+
+// ===== SERVICE WORKER PWA =====
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js')
+      .then(reg => console.log('SW enregistré:', reg.scope))
+      .catch(err => console.log('SW erreur:', err));
+  });
+}

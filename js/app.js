@@ -1682,3 +1682,33 @@ function changerDevise(code) {
 
   toast(`Devise changée : ${DEVISES[code].nom} (${DEVISES[code].symbole}) ✓`);
 }
+
+// ===== PWA INSTALLATION =====
+let deferredPrompt = null;
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'block';
+});
+
+async function installerPWA() {
+  if (!deferredPrompt) {
+    toast('App déjà installée ou non supportée', 'warning');
+    return;
+  }
+  deferredPrompt.prompt();
+  const { outcome } = await deferredPrompt.userChoice;
+  if (outcome === 'accepted') {
+    toast('StockPro installé avec succès ! 🎉');
+    document.getElementById('pwa-install-btn').style.display = 'none';
+  }
+  deferredPrompt = null;
+}
+
+window.addEventListener('appinstalled', () => {
+  toast('StockPro est maintenant installé ! 🎉');
+  document.getElementById('pwa-install-btn').style.display = 'none';
+  deferredPrompt = null;
+});

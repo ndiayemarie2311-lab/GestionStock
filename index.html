@@ -4,6 +4,13 @@
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>StockPro — Gestion de Stock</title>
+  <!-- PWA -->
+<link rel="manifest" href="manifest.json"/>
+<meta name="theme-color" content="#3b82f6"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+<meta name="apple-mobile-web-app-title" content="StockPro"/>
+<link rel="apple-touch-icon" href="assets/icon.svg"/>
 
   <!-- Fonts -->
   <link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet"/>
@@ -288,6 +295,15 @@
           <span class="ni">👥</span>Utilisateurs
         </button>
       </div>
+
+      <!-- Bouton installer PWA -->
+<div id="pwa-install-btn" style="display:none;padding:8px 12px;">
+  <button onclick="installerPWA()"
+          class="btn btn-primary"
+          style="width:100%;font-size:12px;">
+    📱 Installer l'application
+  </button>
+</div>
 
       <div class="sidebar-footer">
         <div class="user-info">
