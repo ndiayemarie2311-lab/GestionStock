@@ -690,6 +690,96 @@
   <div class="grid2" id="liste-categories"></div>
 </div>
 
+<!-- INVENTAIRE -->
+<div class="page" id="page-inventaire">
+  <div class="sh">
+    <div>
+      <div class="sh-title">Inventaire</div>
+      <div class="sh-sub">Comptez et ajustez votre stock réel</div>
+    </div>
+    <div style="display:flex;gap:8px;">
+      <button class="btn btn-ghost"
+              onclick="reinitialiserInventaire()">🔄 Réinitialiser</button>
+      <button class="btn btn-primary"
+              onclick="validerInventaire()">✅ Valider l'inventaire</button>
+    </div>
+  </div>
+
+  <!-- Info -->
+  <div style="background:var(--blue-glow);border:1px solid rgba(59,130,246,0.3);
+              border-radius:var(--rsm);padding:12px 16px;margin-bottom:16px;
+              font-size:13px;color:var(--blue);">
+    💡 Entrez les quantités réelles comptées. Les différences seront
+    automatiquement enregistrées comme ajustements.
+  </div>
+
+  <!-- Stats inventaire -->
+  <div class="stats-row" style="margin-bottom:16px;">
+    <div class="stat-card blue">
+      <div class="sc-icon">📦</div>
+      <div class="sc-label">Total produits</div>
+      <div class="sc-val" id="inv-total">0</div>
+      <div class="sc-sub">à inventorier</div>
+    </div>
+    <div class="stat-card green">
+      <div class="sc-icon">✅</div>
+      <div class="sc-label">Conformes</div>
+      <div class="sc-val" id="inv-conformes">0</div>
+      <div class="sc-sub">stock exact</div>
+    </div>
+    <div class="stat-card orange">
+      <div class="sc-icon">📉</div>
+      <div class="sc-label">Écarts</div>
+      <div class="sc-val" id="inv-ecarts">0</div>
+      <div class="sc-sub">différences</div>
+    </div>
+    <div class="stat-card red">
+      <div class="sc-icon">⏳</div>
+      <div class="sc-label">Non comptés</div>
+      <div class="sc-val" id="inv-restants">0</div>
+      <div class="sc-sub">en attente</div>
+    </div>
+  </div>
+
+  <!-- Filtres -->
+  <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;">
+    <select id="inv-filter-cat" onchange="renderInventaire()"
+            style="padding:7px 12px;border-radius:var(--rsm);
+                   border:1px solid var(--border2);background:var(--bg3);
+                   color:var(--text);font-size:13px;font-family:var(--font);">
+      <option value="">Toutes catégories</option>
+    </select>
+    <select id="inv-filter-ecart" onchange="renderInventaire()"
+            style="padding:7px 12px;border-radius:var(--rsm);
+                   border:1px solid var(--border2);background:var(--bg3);
+                   color:var(--text);font-size:13px;font-family:var(--font);">
+      <option value="">Tous</option>
+      <option value="ecart">Avec écart</option>
+      <option value="conforme">Conformes</option>
+      <option value="noncompte">Non comptés</option>
+    </select>
+  </div>
+
+  <!-- Table inventaire -->
+  <div class="card">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Produit</th>
+            <th>Catégorie</th>
+            <th>Stock système</th>
+            <th>Quantité comptée</th>
+            <th>Écart</th>
+            <th>Statut</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-inventaire"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
 <!-- RAPPORT -->
 <div class="page" id="page-rapport">
   <div class="sh">
