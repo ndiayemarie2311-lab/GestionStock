@@ -36,6 +36,7 @@ async function showPage(id) {
   if (id === 'alertes')      renderAlertes();
   if (id === 'categories')   renderCategories();
   if (id === 'historique')   renderHistorique();
+  if (id === 'inventaire')   renderInventaire();
   if (id === 'rapport')      renderRapport();
   if (id === 'utilisateurs') await renderUtilisateurs();
 
@@ -1333,3 +1334,68 @@ document.addEventListener('keydown', e => {
     closeModal('modal-recherche');
   }
 });
+
+// ===== INVENTAIRE =====
+function reinitialiserInventaire() {
+  if (!confirm('Réinitialiser tous les champs de l\'inventaire ?')) return;
+  state.produits.forEach(p => {
+    const el = document.getElementById(`inv-${p.id}`);
+    if (el) el.value = '';
+  });
+  renderInventaire();
+  toast('Inventaire réinitialisé');
+}
+
+async function validerInventaire() {
+  // Récupérer tous les produits avec écart
+  const ajustements = state.produits.filter(p => {
+    const el     = document.getElementById(`inv-${p.id}`);
+    const compte = el ? parseInt(el.value) : NaN;
+    return !isNaN(compte) && compte !== p.stock;
+  });
+
+  if (!ajustements.length) {
+    toast('Aucun écart à corriger', 'warning');
+    return;
+  }
+
+  if (!confirm(`Valider ${ajustements.length} ajustement(s) de stock ?`)) return;
+
+  let success = 0;
+
+  for (const p of ajustements) {
+    const el     = document.getElementById(`inv-${p.id}`);
+    const compte = parseInt(el.value);
+    const ecart  = compte - p.stock;
+    const type   = ecart > 0 ? 'Entrée' : 'Sortie';
+    const qte    = Math.abs(ecart);
+
+    // Mettre à jour le stock
+    const { error: ep } = await supa
+      .from('produits')
+      .update({ stock: compte })
+      .eq('id', p.id);
+
+    if (ep) continue;
+
+    // Enregistrer le mouvement
+    await supa.from('mouvements').insert([{
+      user_id   : state.currentUser.id,
+      produit_id: p.id,
+      type,
+      qte,
+      motif     : `Ajustement inventaire (écart: ${ecart > 0 ? '+' : ''}${ecart})`,
+      date      : new Date().toISOString().split('T')[0],
+      operateur : state.currentUser?.prenom || 'Admin'
+    }]);
+
+    p.stock = compte;
+    success++;
+  }
+
+  await charger();
+  reinitialiserInventaire();
+  toast(`${success} ajustement(s) validé(s) ✓`);
+  renderDashboard();
+  updateBadges();
+}

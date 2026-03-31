@@ -1128,3 +1128,171 @@ function renderRapport() {
            </div>
          </td></tr>`;
 }
+
+// ===== RENDER INVENTAIRE =====
+function renderInventaire() {
+  const catF   = document.getElementById('inv-filter-cat')?.value   || '';
+  const ecartF = document.getElementById('inv-filter-ecart')?.value || '';
+
+  // Remplir le select catégories
+  const selCat = document.getElementById('inv-filter-cat');
+  if (selCat && selCat.options.length <= 1) {
+    state.categories.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.nom;
+      opt.text  = `${c.emoji} ${c.nom}`;
+      selCat.appendChild(opt);
+    });
+  }
+
+  // Filtrer produits
+  let list = state.produits.filter(p => {
+    if (catF && p.cat !== catF) return false;
+
+    const compteEl = document.getElementById(`inv-${p.id}`);
+    const compte   = compteEl ? parseInt(compteEl.value) : NaN;
+    const ecart    = !isNaN(compte) ? compte - p.stock : null;
+
+    if (ecartF === 'ecart'     && (ecart === null || ecart === 0)) return false;
+    if (ecartF === 'conforme'  && (ecart === null || ecart !== 0)) return false;
+    if (ecartF === 'noncompte' && ecart !== null)                   return false;
+
+    return true;
+  });
+
+  // Stats
+  let conformes  = 0;
+  let ecarts     = 0;
+  let nonComptes = 0;
+
+  state.produits.forEach(p => {
+    const el     = document.getElementById(`inv-${p.id}`);
+    const compte = el ? parseInt(el.value) : NaN;
+    if (isNaN(compte))       nonComptes++;
+    else if (compte === p.stock) conformes++;
+    else                         ecarts++;
+  });
+
+  document.getElementById('inv-total').textContent    = state.produits.length;
+  document.getElementById('inv-conformes').textContent = conformes;
+  document.getElementById('inv-ecarts').textContent    = ecarts;
+  document.getElementById('inv-restants').textContent  = nonComptes;
+
+  const tbody = document.getElementById('tbody-inventaire');
+
+  if (!list.length) {
+    tbody.innerHTML = `
+      <tr><td colspan="6">
+        <div class="empty">
+          <div class="empty-icon">🔢</div>
+          <div class="empty-text">Aucun produit trouvé</div>
+        </div>
+      </td></tr>`;
+    return;
+  }
+
+  // Garder les valeurs existantes
+  const valeurs = {};
+  state.produits.forEach(p => {
+    const el = document.getElementById(`inv-${p.id}`);
+    if (el && el.value !== '') valeurs[p.id] = el.value;
+  });
+
+  tbody.innerHTML = list.map(p => {
+    const valeur = valeurs[p.id] || '';
+    const compte = valeur !== '' ? parseInt(valeur) : NaN;
+    const ecart  = !isNaN(compte) ? compte - p.stock : null;
+
+    let ecartHtml = '<span style="color:var(--text3);">—</span>';
+    let statutHtml= '<span class="badge b-gray">En attente</span>';
+
+    if (ecart !== null) {
+      if (ecart === 0) {
+        ecartHtml  = '<span style="color:var(--green);font-family:var(--mono);font-weight:700;">0</span>';
+        statutHtml = '<span class="badge b-green">✅ Conforme</span>';
+      } else if (ecart > 0) {
+        ecartHtml  = `<span style="color:var(--green);font-family:var(--mono);font-weight:700;">+${ecart}</span>`;
+        statutHtml = '<span class="badge b-blue">📈 Surplus</span>';
+      } else {
+        ecartHtml  = `<span style="color:var(--red);font-family:var(--mono);font-weight:700;">${ecart}</span>`;
+        statutHtml = '<span class="badge b-red">📉 Manque</span>';
+      }
+    }
+
+    return `
+      <tr id="inv-row-${p.id}">
+        <td>
+          <div style="font-weight:600;font-size:13px;">${p.nom}</div>
+          <div style="font-size:11px;color:var(--text3);
+                      font-family:var(--mono);">${p.ref || '—'}</div>
+        </td>
+        <td>
+          <span class="cat-pill">${catEmoji(p.cat)} ${p.cat}</span>
+        </td>
+        <td style="font-family:var(--mono);font-weight:700;font-size:14px;">
+          ${p.stock}
+          <span style="font-size:11px;color:var(--text3);font-weight:400;">
+            ${p.unite || ''}
+          </span>
+        </td>
+        <td>
+          <input id="inv-${p.id}"
+                 type="number" min="0"
+                 value="${valeur}"
+                 placeholder="Saisir..."
+                 oninput="updateInventaireRow('${p.id}')"
+                 style="width:100px;padding:6px 10px;
+                        border-radius:var(--rsm);
+                        border:1px solid var(--border2);
+                        background:var(--bg3);color:var(--text);
+                        font-size:13px;font-family:var(--mono);
+                        outline:none;"/>
+        </td>
+        <td id="inv-ecart-${p.id}">${ecartHtml}</td>
+        <td id="inv-statut-${p.id}">${statutHtml}</td>
+      </tr>`;
+  }).join('');
+}
+
+function updateInventaireRow(id) {
+  const p      = getProduit(id);
+  if (!p) return;
+
+  const el     = document.getElementById(`inv-${id}`);
+  const compte = parseInt(el.value);
+  const ecart  = !isNaN(compte) ? compte - p.stock : null;
+
+  const ecartEl  = document.getElementById(`inv-ecart-${id}`);
+  const statutEl = document.getElementById(`inv-statut-${id}`);
+
+  if (ecart === null) {
+    ecartEl.innerHTML  = '<span style="color:var(--text3);">—</span>';
+    statutEl.innerHTML = '<span class="badge b-gray">En attente</span>';
+  } else if (ecart === 0) {
+    ecartEl.innerHTML  = '<span style="color:var(--green);font-family:var(--mono);font-weight:700;">0</span>';
+    statutEl.innerHTML = '<span class="badge b-green">✅ Conforme</span>';
+  } else if (ecart > 0) {
+    ecartEl.innerHTML  = `<span style="color:var(--green);font-family:var(--mono);font-weight:700;">+${ecart}</span>`;
+    statutEl.innerHTML = '<span class="badge b-blue">📈 Surplus</span>';
+  } else {
+    ecartEl.innerHTML  = `<span style="color:var(--red);font-family:var(--mono);font-weight:700;">${ecart}</span>`;
+    statutEl.innerHTML = '<span class="badge b-red">📉 Manque</span>';
+  }
+
+  // Mettre à jour les stats
+  let conformes  = 0;
+  let ecarts     = 0;
+  let nonComptes = 0;
+
+  state.produits.forEach(p => {
+    const el     = document.getElementById(`inv-${p.id}`);
+    const compte = el ? parseInt(el.value) : NaN;
+    if (isNaN(compte))            nonComptes++;
+    else if (compte === p.stock)  conformes++;
+    else                          ecarts++;
+  });
+
+  document.getElementById('inv-conformes').textContent = conformes;
+  document.getElementById('inv-ecarts').textContent    = ecarts;
+  document.getElementById('inv-restants').textContent  = nonComptes;
+}
