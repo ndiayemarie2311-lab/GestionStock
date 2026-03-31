@@ -36,3 +36,45 @@ const EMAIL_CONFIG = {
 
 // Initialiser EmailJS
 emailjs.init(EMAIL_CONFIG.publicKey);
+
+// ===== CONFIGURATION DEVISES =====
+const DEVISES = {
+  XOF: { nom: 'Franc CFA',    symbole: 'F',   taux: 1        },
+  EUR: { nom: 'Euro',         symbole: '€',   taux: 0.001524 },
+  USD: { nom: 'Dollar',       symbole: '$',   taux: 0.001639 },
+  GBP: { nom: 'Livre Sterling',symbole: '£',  taux: 0.001295 },
+  MAD: { nom: 'Dirham',       symbole: 'DH',  taux: 0.016    },
+  NGN: { nom: 'Naira',        symbole: '₦',   taux: 2.47     }
+};
+
+let deviseActive = localStorage.getItem('stockpro_devise') || 'XOF';
+
+function getDevise() {
+  return DEVISES[deviseActive] || DEVISES.XOF;
+}
+
+function setDevise(code) {
+  deviseActive = code;
+  localStorage.setItem('stockpro_devise', code);
+}
+
+function convertirPrix(montantXOF) {
+  const d = getDevise();
+  return montantXOF * d.taux;
+}
+
+function fmtPrixDevise(montantXOF) {
+  const d      = getDevise();
+  const valeur = montantXOF * d.taux;
+
+  if (deviseActive === 'XOF') {
+    return Number(valeur).toLocaleString('fr-FR').replace(/\s/g, ' ') +
+           ' ' + d.symbole;
+  }
+
+  return d.symbole + ' ' +
+    Number(valeur).toLocaleString('fr-FR', {
+      minimumFractionDigits : 2,
+      maximumFractionDigits : 2
+    });
+}

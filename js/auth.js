@@ -155,6 +155,9 @@ async function bootApp(user) {
     await initDemoData();
   }
 
+  // Initialiser la devise
+  const sel = document.getElementById('devise-selector');
+  if (sel) sel.value = deviseActive;
   // Afficher dashboard
   renderDashboard();
   updateBadges();

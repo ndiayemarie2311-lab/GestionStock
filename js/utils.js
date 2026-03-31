@@ -15,8 +15,9 @@ function fmtDate(d) {
 }
 
 // ===== FORMAT PRIX =====
+// ===== FORMAT PRIX =====
 function fmtPrix(n) {
-  return Number(n || 0).toLocaleString('fr-FR').replace(/\s/g, ' ') + ' F';
+  return fmtPrixDevise(Number(n || 0));
 }
 
 // ===== STATUT STOCK =====

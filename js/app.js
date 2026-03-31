@@ -1663,3 +1663,22 @@ function updateBadgesCommandes() {
     el.style.display = nb > 0 ? 'inline' : 'none';
   }
 }
+
+// ===== CHANGER DEVISE =====
+function changerDevise(code) {
+  setDevise(code);
+
+  // Mettre à jour le selector
+  document.getElementById('devise-selector').value = code;
+
+  // Rafraîchir la page active
+  if (currentPage === 'dashboard')    renderDashboard();
+  if (currentPage === 'produits')     renderProduits();
+  if (currentPage === 'mouvements')   renderMouvements();
+  if (currentPage === 'fournisseurs') renderFournisseurs();
+  if (currentPage === 'rapport')      renderRapport();
+  if (currentPage === 'commandes')    renderCommandes();
+  if (currentPage === 'inventaire')   renderInventaire();
+
+  toast(`Devise changée : ${DEVISES[code].nom} (${DEVISES[code].symbole}) ✓`);
+}

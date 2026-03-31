@@ -312,6 +312,19 @@
           <div class="topbar-title" id="topbar-title">Dashboard</div>
         </div>
         <div class="topbar-right">
+          <!-- Sélecteur devise -->
+            <select id="devise-selector" onchange="changerDevise(this.value)"
+                    style="padding:6px 10px;border-radius:var(--rsm);
+                          border:1px solid var(--border2);background:var(--bg3);
+                          color:var(--text);font-size:12px;font-family:var(--mono);
+                          cursor:pointer;">
+              <option value="XOF">🇸🇳 F CFA</option>
+              <option value="EUR">🇪🇺 EUR</option>
+              <option value="USD">🇺🇸 USD</option>
+              <option value="GBP">🇬🇧 GBP</option>
+              <option value="MAD">🇲🇦 MAD</option>
+              <option value="NGN">🇳🇬 NGN</option>
+            </select>
           <div class="topbar-search" onclick="openRechercheGlobale()"
      style="cursor:pointer;min-width:220px;">
   <span style="color:var(--text3);">🔍</span>
