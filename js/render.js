@@ -6,12 +6,13 @@ function renderChartMouvements() {
   const ctx = document.getElementById('chart-mouvements');
   if (!ctx) return;
 
-  // 7 derniers jours
-  const jours = [];
+  // 30 derniers jours
+  const jours   = [];
   const entrees = [];
   const sorties = [];
+  const stocks  = [];
 
-  for (let i = 6; i >= 0; i--) {
+  for (let i = 29; i >= 0; i--) {
     const d = new Date();
     d.setDate(d.getDate() - i);
     const dateStr = d.toISOString().split('T')[0];
@@ -23,15 +24,26 @@ function renderChartMouvements() {
     jours.push(label);
 
     const mvtsDuJour = state.mouvements.filter(m => m.date === dateStr);
-    entrees.push(mvtsDuJour
+    const e = mvtsDuJour
       .filter(m => m.type === 'Entrée')
-      .reduce((sum, m) => sum + m.qte, 0));
-    sorties.push(mvtsDuJour
+      .reduce((sum, m) => sum + m.qte, 0);
+    const s = mvtsDuJour
       .filter(m => m.type === 'Sortie')
-      .reduce((sum, m) => sum + m.qte, 0));
+      .reduce((sum, m) => sum + m.qte, 0);
+
+    entrees.push(e);
+    sorties.push(s);
   }
 
-  // Détruire l'ancien graphique si existant
+  // Calculer l'évolution du stock total
+  const stockActuel = state.produits.reduce((sum, p) => sum + p.stock, 0);
+  let stockCourant  = stockActuel;
+
+  for (let i = 29; i >= 0; i--) {
+    stocks[i] = stockCourant;
+    stockCourant = stockCourant - entrees[i] + sorties[i];
+  }
+
   if (chartMouvements) chartMouvements.destroy();
 
   chartMouvements = new Chart(ctx, {
@@ -45,7 +57,8 @@ function renderChartMouvements() {
           backgroundColor: 'rgba(34, 197, 94, 0.7)',
           borderColor    : 'rgba(34, 197, 94, 1)',
           borderWidth    : 1,
-          borderRadius   : 4
+          borderRadius   : 4,
+          yAxisID        : 'y'
         },
         {
           label          : 'Sorties',
@@ -53,27 +66,76 @@ function renderChartMouvements() {
           backgroundColor: 'rgba(239, 68, 68, 0.7)',
           borderColor    : 'rgba(239, 68, 68, 1)',
           borderWidth    : 1,
-          borderRadius   : 4
+          borderRadius   : 4,
+          yAxisID        : 'y'
+        },
+        {
+          label          : 'Stock total',
+          data           : stocks,
+          type           : 'line',
+          borderColor    : 'rgba(59, 130, 246, 0.9)',
+          backgroundColor: 'rgba(59, 130, 246, 0.1)',
+          borderWidth    : 2,
+          pointRadius    : 2,
+          fill           : true,
+          tension        : 0.4,
+          yAxisID        : 'y2'
         }
       ]
     },
     options: {
-      responsive       : true,
+      responsive        : true,
       maintainAspectRatio: true,
+      interaction       : {
+        mode     : 'index',
+        intersect: false
+      },
       plugins: {
         legend: {
-          labels: { color: '#8b919e', font: { size: 12 } }
+          labels: {
+            color: '#8b919e',
+            font : { size: 11 }
+          }
+        },
+        tooltip: {
+          backgroundColor: 'rgba(19, 22, 27, 0.95)',
+          titleColor     : '#e8eaf0',
+          bodyColor      : '#8b919e',
+          borderColor    : '#2a2f3a',
+          borderWidth    : 1
         }
       },
       scales: {
         x: {
-          ticks : { color: '#8b919e' },
-          grid  : { color: 'rgba(255,255,255,0.05)' }
+          ticks: {
+            color    : '#8b919e',
+            maxTicksLimit: 10
+          },
+          grid: { color: 'rgba(255,255,255,0.03)' }
         },
         y: {
-          ticks : { color: '#8b919e' },
-          grid  : { color: 'rgba(255,255,255,0.05)' },
-          beginAtZero: true
+          position    : 'left',
+          ticks       : { color: '#8b919e' },
+          grid        : { color: 'rgba(255,255,255,0.05)' },
+          beginAtZero : true,
+          title       : {
+            display: true,
+            text   : 'Mouvements',
+            color  : '#555e6e',
+            font   : { size: 10 }
+          }
+        },
+        y2: {
+          position    : 'right',
+          ticks       : { color: '#3b82f6' },
+          grid        : { drawOnChartArea: false },
+          beginAtZero : false,
+          title       : {
+            display: true,
+            text   : 'Stock total',
+            color  : '#3b82f6',
+            font   : { size: 10 }
+          }
         }
       }
     }
