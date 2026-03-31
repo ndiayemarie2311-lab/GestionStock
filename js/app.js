@@ -1405,21 +1405,30 @@ let cmdLignes = [];
 
 function openModalCommande() {
   cmdLignes = [];
-  document.getElementById('cmd-id').value       = '';
-  document.getElementById('cmd-fourn').innerHTML =
-    '<option value="">— Choisir —</option>' +
+
+  // Vider le formulaire
+  document.getElementById('cmd-id').value    = '';
+  document.getElementById('cmd-notes').value = '';
+  document.getElementById('cmd-date').value  =
+    new Date().toISOString().split('T')[0];
+  document.getElementById('cmd-date-livraison').value = '';
+  document.getElementById('cmd-statut').value = 'En attente';
+  document.getElementById('modal-cmd-title').textContent = 'Nouvelle commande';
+  document.getElementById('cmd-total-display').textContent = '0 F';
+
+  // Remplir fournisseurs
+  const selFourn = document.getElementById('cmd-fourn');
+  selFourn.innerHTML =
+    '<option value="">— Choisir un fournisseur —</option>' +
     state.fournisseurs.map(f =>
       `<option value="${f.id}">${f.nom}</option>`
     ).join('');
-  document.getElementById('cmd-date').value =
-    new Date().toISOString().split('T')[0];
-  document.getElementById('cmd-date-livraison').value = '';
-  document.getElementById('cmd-statut').value   = 'En attente';
-  document.getElementById('cmd-notes').value    = '';
-  document.getElementById('cmd-total-display').textContent = '0 F';
-  document.getElementById('modal-cmd-title').textContent   = 'Nouvelle commande';
+
+  // Ajouter une première ligne vide
+  cmdLignes.push({ produit_id: '', quantite: 1, prix_unit: 0 });
   renderLignesCommande();
-  openModal('modal-commande');
+
+  document.getElementById('modal-commande').classList.add('open');
 }
 
 function ajouterLigneCommande() {
@@ -1456,7 +1465,7 @@ function renderLignesCommande() {
         ${state.produits.map(p =>
           `<option value="${p.id}"
                    ${l.produit_id === p.id ? 'selected' : ''}>
-             ${p.nom}
+             ${p.nom} (stock: ${p.stock} ${p.unite || ''})
            </option>`
         ).join('')}
       </select>
