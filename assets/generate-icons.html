@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<body>
+<canvas id="c192" width="192" height="192"></canvas>
+<canvas id="c512" width="512" height="512"></canvas>
+<script>
+function drawIcon(canvas) {
+  const ctx = canvas.getContext('2d');
+  const s   = canvas.width;
+
+  // Fond
+  ctx.fillStyle = '#0d0f12';
+  ctx.beginPath();
+  ctx.roundRect(0, 0, s, s, s * 0.18);
+  ctx.fill();
+
+  // Carré bleu
+  ctx.fillStyle = '#3b82f6';
+  ctx.beginPath();
+  ctx.roundRect(s*0.15, s*0.15, s*0.7, s*0.7, s*0.1);
+  ctx.fill();
+
+  // Texte S
+  ctx.fillStyle = '#fff';
+  ctx.font      = `bold ${s*0.55}px Arial`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+  ctx.fillText('S', s/2, s/2);
+
+  return canvas.toDataURL('image/png');
+}
+
+// Générer les deux icônes
+const c192 = document.getElementById('c192');
+const c512 = document.getElementById('c512');
+
+const png192 = drawIcon(c192);
+const png512 = drawIcon(c512);
+
+// Créer les liens de téléchargement
+const a192 = document.createElement('a');
+a192.href     = png192;
+a192.download = 'icon-192.png';
+a192.textContent = 'Télécharger icon-192.png';
+a192.style.display = 'block';
+a192.style.margin  = '20px';
+a192.style.fontSize = '18px';
+document.body.appendChild(a192);
+
+const a512 = document.createElement('a');
+a512.href     = png512;
+a512.download = 'icon-512.png';
+a512.textContent = 'Télécharger icon-512.png';
+a512.style.display = 'block';
+a512.style.margin  = '20px';
+a512.style.fontSize = '18px';
+document.body.appendChild(a512);
+</script>
+</body>
+</html>
