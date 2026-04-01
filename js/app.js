@@ -1712,3 +1712,204 @@ window.addEventListener('appinstalled', () => {
   document.getElementById('pwa-install-btn').style.display = 'none';
   deferredPrompt = null;
 });
+
+// ===== SCANNER CODE-BARRES =====
+let scannerActif = false;
+
+function openScanner() {
+  document.getElementById('modal-scanner').classList.add('open');
+  document.getElementById('scanner-result').innerHTML =
+    'Pointez la caméra vers un code-barres...';
+  document.getElementById('scanner-manual-input').value = '';
+  demarrerScanner();
+}
+
+function closeScanner() {
+  arreterScanner();
+  document.getElementById('modal-scanner').classList.remove('open');
+}
+
+function demarrerScanner() {
+  if (scannerActif) return;
+
+  Quagga.init({
+    inputStream: {
+      name      : 'Live',
+      type      : 'LiveStream',
+      target    : document.getElementById('scanner-viewport'),
+      constraints: {
+        facingMode: 'environment', // Caméra arrière
+        width     : { min: 640 },
+        height    : { min: 280 }
+      }
+    },
+    decoder: {
+      readers: [
+        'ean_reader',
+        'ean_8_reader',
+        'code_128_reader',
+        'code_39_reader',
+        'upc_reader',
+        'upc_e_reader'
+      ]
+    },
+    locate  : true,
+    numOfWorkers: 2,
+    frequency   : 10
+  }, err => {
+    if (err) {
+      console.error('Scanner erreur:', err);
+      document.getElementById('scanner-result').innerHTML =
+        `<span style="color:var(--red);">
+           ❌ Caméra non accessible.<br/>
+           <small>Utilisez la saisie manuelle ci-dessous.</small>
+         </span>`;
+      return;
+    }
+    Quagga.start();
+    scannerActif = true;
+  });
+
+  // Écouter les détections
+  Quagga.onDetected(data => {
+    const code = data.codeResult.code;
+    if (code) {
+      // Vibration sur mobile
+      if (navigator.vibrate) navigator.vibrate(200);
+      rechercherCodeBarre(code);
+    }
+  });
+}
+
+function arreterScanner() {
+  if (!scannerActif) return;
+  try {
+    Quagga.stop();
+  } catch(e) {}
+  scannerActif = false;
+}
+
+function rechercherCodeBarre(code) {
+  if (!code || code.trim() === '') return;
+  code = code.trim();
+
+  // Chercher le produit par référence
+  const produit = state.produits.find(p =>
+    (p.ref || '').toLowerCase() === code.toLowerCase() ||
+    (p.nom || '').toLowerCase() === code.toLowerCase()
+  );
+
+  const resultEl = document.getElementById('scanner-result');
+
+  if (produit) {
+    const s = stockStatut(produit);
+    resultEl.innerHTML = `
+      <div style="text-align:left;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+          <div style="font-size:24px;">${catEmoji(produit.cat)}</div>
+          <div>
+            <div style="font-size:14px;font-weight:700;color:var(--text);">
+              ${produit.nom}
+            </div>
+            <div style="font-size:11px;color:var(--text2);">
+              Réf: ${produit.ref || '—'} · ${produit.cat}
+            </div>
+          </div>
+          <span class="badge ${s.cls}" style="margin-left:auto;">
+            ${s.label}
+          </span>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;
+                    gap:8px;margin-bottom:12px;">
+          <div style="background:var(--bg4);border-radius:var(--rsm);
+                      padding:8px 12px;">
+            <div style="font-size:10px;color:var(--text3);">STOCK</div>
+            <div style="font-family:var(--mono);font-weight:700;
+                        color:var(--text);">
+              ${produit.stock} ${produit.unite || ''}
+            </div>
+          </div>
+          <div style="background:var(--bg4);border-radius:var(--rsm);
+                      padding:8px 12px;">
+            <div style="font-size:10px;color:var(--text3);">PRIX</div>
+            <div style="font-family:var(--mono);font-weight:700;
+                        color:var(--blue);">
+              ${fmtPrix(produit.prix)}
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:8px;">
+          <button onclick="scannerEntree('${produit.id}')"
+                  class="btn btn-success"
+                  style="flex:1;">📥 Entrée</button>
+          <button onclick="scannerSortie('${produit.id}')"
+                  class="btn btn-danger"
+                  style="flex:1;">📤 Sortie</button>
+          <button onclick="scannerVoirProduit('${produit.id}')"
+                  class="btn btn-ghost"
+                  style="flex:1;">👁️ Voir</button>
+        </div>
+      </div>`;
+
+    // Arrêter le scanner après détection
+    arreterScanner();
+
+  } else {
+    resultEl.innerHTML = `
+      <div>
+        <div style="font-size:24px;margin-bottom:8px;">🔍</div>
+        <div style="color:var(--text2);margin-bottom:4px;">
+          Code : <b style="font-family:var(--mono);">${code}</b>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">
+          Aucun produit trouvé avec cette référence
+        </div>
+        <button onclick="scannerNouveauProduit('${code}')"
+                class="btn btn-primary btn-sm">
+          + Créer ce produit
+        </button>
+      </div>`;
+  }
+}
+
+function scannerEntree(id) {
+  closeScanner();
+  populateProduitSelect();
+  document.getElementById('m-produit').value = id;
+  document.getElementById('m-type').value    = 'Entrée';
+  document.getElementById('m-date').value    =
+    new Date().toISOString().split('T')[0];
+  openModal('modal-mouvement');
+}
+
+function scannerSortie(id) {
+  closeScanner();
+  populateProduitSelect();
+  document.getElementById('m-produit').value = id;
+  document.getElementById('m-type').value    = 'Sortie';
+  document.getElementById('m-date').value    =
+    new Date().toISOString().split('T')[0];
+  openModal('modal-mouvement');
+}
+
+function scannerVoirProduit(id) {
+  closeScanner();
+  showPage('produits');
+  const p = getProduit(id);
+  if (p) {
+    state.searchQuery = p.nom;
+    document.getElementById('search-input').value = p.nom;
+    renderProduits();
+  }
+}
+
+function scannerNouveauProduit(code) {
+  closeScanner();
+  populateFourniSelect();
+  populateCategoriesSelect('p-cat');
+  resetProduitForm();
+  document.getElementById('p-ref').value = code;
+  document.getElementById('modal-produit-title').textContent =
+    'Nouveau produit (code scanné)';
+  openModal('modal-produit');
+}
