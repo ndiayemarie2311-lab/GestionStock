@@ -1955,7 +1955,7 @@ async function rechercherCodeBarre(code) {
                 </div>
               </div>
             </div>
-            <button onclick="scannerCreerDepuisAPI('${code}', \`${nom.replace(/`/g,"'")}\`, '${marque}', '${qte}')"
+            <button onclick="scannerCreerDepuisCache('${code}', \`${nom.replace(/`/g,"'")}\`, '${marque}', '${qte}')"
                     class="btn btn-primary" style="width:100%;margin-bottom:8px;">
               ➕ Ajouter ce produit à StockPro
             </button>
