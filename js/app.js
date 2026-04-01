@@ -1912,90 +1912,85 @@ async function rechercherCodeBarre(code) {
   // 2. Rechercher sur Open Food Facts avec timeout
   try {
     const controller = new AbortController();
-    const timeout    = setTimeout(() => controller.abort(), 5000); // 5 secondes max
+    const timeout    = setTimeout(() => controller.abort(), 4000);
 
     const response = await fetch(
       `https://world.openfoodfacts.org/api/v0/product/${code}.json`,
       { signal: controller.signal }
     );
     clearTimeout(timeout);
+    const data = await response.json();
 
     if (data.status === 1 && data.product) {
-      const p    = data.product;
-      const nom  = p.product_name_fr || p.product_name || p.abbreviated_product_name || 'Produit inconnu';
-      const marque = p.brands || '';
-      const cat  = p.categories_tags?.[0]?.replace('en:', '') || 'Alimentaire';
-      const img  = p.image_front_small_url || '';
-      const qte  = p.quantity || '';
+      const p      = data.product;
+      const nom    = p.product_name_fr || p.product_name || '';
+      const marque = p.brands   || '';
+      const img    = p.image_front_small_url || '';
+      const qte    = p.quantity || '';
 
-      resultEl.innerHTML = `
-        <div style="text-align:left;">
-          <div style="background:var(--blue-glow);border:1px solid rgba(59,130,246,0.3);
-                      border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;
-                      font-size:12px;color:var(--blue);">
-            🌐 Produit trouvé sur Open Food Facts
-          </div>
-          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
-            ${img
-              ? `<img src="${img}" style="width:60px;height:60px;
-                         object-fit:contain;border-radius:var(--rsm);
-                         background:#fff;padding:4px;flex-shrink:0;"/>`
-              : `<div style="width:60px;height:60px;background:var(--bg4);
-                             border-radius:var(--rsm);display:flex;
-                             align-items:center;justify-content:center;
-                             font-size:24px;flex-shrink:0;">🥩</div>`}
-            <div style="flex:1;">
-              <div style="font-size:14px;font-weight:700;color:var(--text);
-                          margin-bottom:3px;">${nom}</div>
-              ${marque
-                ? `<div style="font-size:12px;color:var(--text2);">
-                     🏷️ ${marque}
-                   </div>`
-                : ''}
-              ${qte
-                ? `<div style="font-size:12px;color:var(--text2);">
-                     📦 ${qte}
-                   </div>`
-                : ''}
-              <div style="font-size:11px;color:var(--text3);
-                          font-family:var(--mono);margin-top:3px;">
-                Code: ${code}
+      if (nom) {
+        resultEl.innerHTML = `
+          <div style="text-align:left;">
+            <div style="background:var(--blue-glow);border:1px solid rgba(59,130,246,0.3);
+                        border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;
+                        font-size:12px;color:var(--blue);">
+              🌐 Produit trouvé sur Open Food Facts
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+              ${img
+                ? `<img src="${img}" style="width:60px;height:60px;
+                           object-fit:contain;border-radius:var(--rsm);
+                           background:#fff;padding:4px;flex-shrink:0;"/>`
+                : `<div style="width:60px;height:60px;background:var(--bg4);
+                               border-radius:var(--rsm);display:flex;
+                               align-items:center;justify-content:center;
+                               font-size:24px;flex-shrink:0;">📦</div>`}
+              <div style="flex:1;">
+                <div style="font-size:14px;font-weight:700;color:var(--text);
+                            margin-bottom:3px;">${nom}</div>
+                ${marque ? `<div style="font-size:12px;color:var(--text2);">🏷️ ${marque}</div>` : ''}
+                ${qte    ? `<div style="font-size:12px;color:var(--text2);">📦 ${qte}</div>`    : ''}
+                <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:3px;">
+                  Code: ${code}
+                </div>
               </div>
             </div>
-          </div>
-          <button onclick="scannerCreerDepuisAPI('${code}', \`${nom.replace(/`/g,"'")}\`, '${marque}', '${qte}')"
-                  class="btn btn-primary"
-                  style="width:100%;margin-bottom:8px;">
-            ➕ Ajouter ce produit à StockPro
-          </button>
-          <button onclick="demarrerScanner()"
-                  class="btn btn-ghost"
-                  style="width:100%;font-size:12px;">
-            📷 Scanner un autre produit
-          </button>
-        </div>`;
-
-      arreterScanner();
-      return;
+            <button onclick="scannerCreerDepuisAPI('${code}', \`${nom.replace(/`/g,"'")}\`, '${marque}', '${qte}')"
+                    class="btn btn-primary" style="width:100%;margin-bottom:8px;">
+              ➕ Ajouter ce produit à StockPro
+            </button>
+            <button onclick="demarrerScanner()"
+                    class="btn btn-ghost" style="width:100%;font-size:12px;">
+              📷 Scanner un autre produit
+            </button>
+          </div>`;
+        arreterScanner();
+        return;
+      }
     }
   } catch(e) {
-    console.log('Open Food Facts erreur:', e);
+    // Timeout ou erreur réseau — on continue vers création manuelle
+    console.log('Open Food Facts non disponible:', e.message);
   }
 
-  // 3. Produit non trouvé
+  // 3. Produit non trouvé — ouvrir directement le formulaire
   resultEl.innerHTML = `
-    <div style="text-align:center;">
-      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
-      <div style="color:var(--text2);margin-bottom:4px;font-size:13px;">
-        Code : <b style="font-family:var(--mono);">${code}</b>
+    <div style="text-align:center;padding:8px;">
+      <div style="font-size:28px;margin-bottom:8px;">📦</div>
+      <div style="color:var(--text);font-weight:600;margin-bottom:4px;font-size:14px;">
+        Nouveau produit détecté
       </div>
-      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">
-        Aucun produit trouvé dans StockPro ni sur internet
+      <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">
+        Code : <b style="font-family:var(--mono);color:var(--blue);">${code}</b>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">
+        Ce produit n'existe pas encore dans StockPro.<br/>
+        Voulez-vous le créer ?
       </div>
       <div style="display:flex;gap:8px;justify-content:center;">
         <button onclick="scannerNouveauProduit('${code}')"
-                class="btn btn-primary btn-sm">
-          ➕ Créer manuellement
+                class="btn btn-primary">
+          ➕ Créer ce produit
         </button>
         <button onclick="demarrerScanner()"
                 class="btn btn-ghost btn-sm">
@@ -2003,41 +1998,6 @@ async function rechercherCodeBarre(code) {
         </button>
       </div>
     </div>`;
-}
-
-// ===== CRÉER PRODUIT DEPUIS API =====
-function scannerCreerDepuisAPI(code, nom, marque, qte) {
-  closeScanner();
-
-  // Préparer le formulaire avec les infos récupérées
-  populateFourniSelect();
-  populateCategoriesSelect('p-cat');
-  resetProduitForm();
-
-  // Remplir automatiquement les champs
-  document.getElementById('p-nom').value  =
-    marque ? `${nom} — ${marque}` : nom;
-  document.getElementById('p-ref').value  = code;
-  document.getElementById('p-unite').value =
-    qte ? qte.replace(/[0-9]/g, '').trim() : '';
-  document.getElementById('p-stock').value = '0';
-  document.getElementById('p-seuil').value = '5';
-
-  // Sélectionner Alimentaire par défaut
-  const catSelect = document.getElementById('p-cat');
-  for (let opt of catSelect.options) {
-    if (opt.value === 'Alimentaire') {
-      opt.selected = true;
-      break;
-    }
-  }
-
-  document.getElementById('modal-produit-title').textContent =
-    '➕ Nouveau produit (scanné)';
-
-  openModal('modal-produit');
-  toast(`Infos récupérées pour "${nom}" ✓`);
-}
 
 function scannerEntree(id) {
   closeScanner();
@@ -2098,4 +2058,5 @@ function scannerNouveauProduit(code) {
     nomInput.focus();
     nomInput.select(); // Sélectionner le texte pour faciliter la modification
   }, 150);
+  }
 }
