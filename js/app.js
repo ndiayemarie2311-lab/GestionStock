@@ -1090,55 +1090,45 @@ function closeScanner() {
 function demarrerScanner() {
   if (scannerActif) return;
   try {
-    const codeReader = new ZXing.BrowserMultiFormatReader();
+    const hints = new Map();
+    const formats = [
+      ZXing.BarcodeFormat.EAN_13,
+      ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.CODE_128,
+      ZXing.BarcodeFormat.CODE_39,
+      ZXing.BarcodeFormat.UPC_A,
+      ZXing.BarcodeFormat.UPC_E
+    ];
+    hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, formats);
+
+    const codeReader = new ZXing.BrowserMultiFormatReader(hints);
     zxingReader      = codeReader;
 
-    // Lister les caméras disponibles
-    ZXing.BrowserMultiFormatReader.listVideoInputDevices().then(devices => {
-      if (!devices || devices.length === 0) {
-        document.getElementById('scanner-result').innerHTML =
-          `<div style="color:var(--red);text-align:center;">
-             ❌ Aucune caméra détectée.<br/>
-             <small>Utilisez la saisie manuelle ci-dessous.</small>
-           </div>`;
-        return;
-      }
-
-      // Prendre la caméra arrière si disponible
-      const camera = devices.find(d =>
-        d.label.toLowerCase().includes('back') ||
-        d.label.toLowerCase().includes('rear') ||
-        d.label.toLowerCase().includes('arrière') ||
-        d.label.toLowerCase().includes('environment')
-      ) || devices[devices.length - 1];
-
-      codeReader.decodeFromVideoDevice(
-        camera.deviceId,
-        'scanner-video',
-        (result, err) => {
-          if (result) {
-            const code = result.getText();
-            if (!code) return;
-            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-            arreterScanner();
-            document.getElementById('scanner-result').innerHTML =
-              `<span style="color:var(--green);">
-                 ✓ Code détecté : <b style="font-family:var(--mono);">${code}</b>
-               </span>`;
-            setTimeout(() => rechercherCodeBarre(code), 300);
-          }
+    codeReader.decodeFromConstraints(
+      {
+        audio: false,
+        video: {
+          facingMode  : 'environment',
+          width       : { ideal: 1280 },
+          height      : { ideal: 720 }
         }
-      );
-      scannerActif = true;
-
-    }).catch(err => {
-      console.error('Erreur caméras:', err);
-      document.getElementById('scanner-result').innerHTML =
-        `<div style="color:var(--red);text-align:center;">
-           ❌ Impossible d'accéder à la caméra.<br/>
-           <small>Utilisez la saisie manuelle ci-dessous.</small>
-         </div>`;
-    });
+      },
+      'scanner-video',
+      (result, err) => {
+        if (result) {
+          const code = result.getText();
+          if (!code) return;
+          if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+          arreterScanner();
+          document.getElementById('scanner-result').innerHTML =
+            `<span style="color:var(--green);">
+               ✓ Code détecté : <b style="font-family:var(--mono);">${code}</b>
+             </span>`;
+          setTimeout(() => rechercherCodeBarre(code), 300);
+        }
+      }
+    );
+    scannerActif = true;
 
   } catch(e) {
     console.error('Scanner erreur:', e);
