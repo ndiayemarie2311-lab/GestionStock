@@ -1780,11 +1780,27 @@ function demarrerScanner() {
 
 function onCodeDetecte(data) {
   // Filtre de confiance — ignorer les lectures peu fiables
+ const _detectionBuffer = {};
+
+function onCodeDetecte(data) {
   const result = data.codeResult;
   if (!result || !result.code) return;
 
-  // Vérifier que la majorité des decodeurs sont d'accord
-  const erreurs = result.decodedCodes
+  const code = result.code;
+
+  // Compter les détections consécutives du même code
+  _detectionBuffer[code] = (_detectionBuffer[code] || 0) + 1;
+
+  // Réinitialiser les autres codes
+  Object.keys(_detectionBuffer).forEach(k => {
+    if (k !== code) _detectionBuffer[k] = 0;
+  });
+
+  // Accepter seulement après 5 détections du même code
+  if (_detectionBuffer[code] < 5) return;
+
+  // Vérifier la confiance
+  const erreurs = (result.decodedCodes || [])
     .filter(c => c.error !== undefined)
     .map(c => c.error);
 
@@ -1792,17 +1808,21 @@ function onCodeDetecte(data) {
     ? erreurs.reduce((a, b) => a + b, 0) / erreurs.length
     : 1;
 
-  // Seulement accepter si confiance > 70%
-  if (moyenneErreur > 0.3) return;
+  if (moyenneErreur > 0.25) return;
 
-  const code = result.code;
-  if (navigator.vibrate) navigator.vibrate(200);
+  // Code validé !
+  Object.keys(_detectionBuffer).forEach(k => delete _detectionBuffer[k]);
+
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
 
   document.getElementById('scanner-result').innerHTML =
-    `<span style="color:var(--green);">✓ Code détecté : <b style="font-family:var(--mono);">${code}</b></span>`;
+    `<span style="color:var(--green);">
+       ✓ Code détecté : <b style="font-family:var(--mono);">${code}</b>
+     </span>`;
 
   arreterScanner();
   setTimeout(() => rechercherCodeBarre(code), 300);
+}
 }
 
 function arreterScanner() {
@@ -1889,12 +1909,16 @@ async function rechercherCodeBarre(code) {
     return;
   }
 
-  // 2. Rechercher sur Open Food Facts
+  // 2. Rechercher sur Open Food Facts avec timeout
   try {
+    const controller = new AbortController();
+    const timeout    = setTimeout(() => controller.abort(), 5000); // 5 secondes max
+
     const response = await fetch(
-      `https://world.openfoodfacts.org/api/v0/product/${code}.json`
+      `https://world.openfoodfacts.org/api/v0/product/${code}.json`,
+      { signal: controller.signal }
     );
-    const data = await response.json();
+    clearTimeout(timeout);
 
     if (data.status === 1 && data.product) {
       const p    = data.product;
