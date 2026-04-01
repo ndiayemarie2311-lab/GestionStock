@@ -1815,33 +1815,43 @@ function arreterScanner() {
   scannerActif = false;
 }
 
-function rechercherCodeBarre(code) {
+async function rechercherCodeBarre(code) {
   if (!code || code.trim() === '') return;
   code = code.trim();
 
-  // Chercher le produit par référence OU par nom partiel
-  const produit = state.produits.find(p =>
-    (p.ref || '').toLowerCase() === code.toLowerCase()
-  ) || state.produits.find(p =>
-    (p.nom || '').toLowerCase().includes(code.toLowerCase())
-  ) || state.produits.find(p =>
-    (p.ref || '').toLowerCase().includes(code.toLowerCase())
-  );
-
   const resultEl = document.getElementById('scanner-result');
 
-  if (produit) {
-    const s = stockStatut(produit);
+  // Afficher chargement
+  resultEl.innerHTML = `
+    <div style="text-align:center;padding:20px;">
+      <div style="font-size:24px;margin-bottom:8px;">⏳</div>
+      <div style="color:var(--text2);font-size:13px;">
+        Recherche du produit <b style="font-family:var(--mono);">${code}</b>...
+      </div>
+    </div>`;
+
+  // 1. Chercher dans StockPro d'abord
+  const produitLocal = state.produits.find(p =>
+    (p.ref || '').toLowerCase() === code.toLowerCase()
+  );
+
+  if (produitLocal) {
+    const s = stockStatut(produitLocal);
     resultEl.innerHTML = `
       <div style="text-align:left;">
+        <div style="background:var(--green-glow);border:1px solid rgba(34,197,94,0.3);
+                    border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;
+                    font-size:12px;color:var(--green);">
+          ✅ Produit trouvé dans StockPro
+        </div>
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-          <div style="font-size:24px;">${catEmoji(produit.cat)}</div>
+          <div style="font-size:24px;">${catEmoji(produitLocal.cat)}</div>
           <div>
             <div style="font-size:14px;font-weight:700;color:var(--text);">
-              ${produit.nom}
+              ${produitLocal.nom}
             </div>
             <div style="font-size:11px;color:var(--text2);">
-              Réf: ${produit.ref || '—'} · ${produit.cat}
+              Réf: ${produitLocal.ref || '—'} · ${produitLocal.cat}
             </div>
           </div>
           <span class="badge ${s.cls}" style="margin-left:auto;">
@@ -1853,9 +1863,8 @@ function rechercherCodeBarre(code) {
           <div style="background:var(--bg4);border-radius:var(--rsm);
                       padding:8px 12px;">
             <div style="font-size:10px;color:var(--text3);">STOCK</div>
-            <div style="font-family:var(--mono);font-weight:700;
-                        color:var(--text);">
-              ${produit.stock} ${produit.unite || ''}
+            <div style="font-family:var(--mono);font-weight:700;">
+              ${produitLocal.stock} ${produitLocal.unite || ''}
             </div>
           </div>
           <div style="background:var(--bg4);border-radius:var(--rsm);
@@ -1863,38 +1872,147 @@ function rechercherCodeBarre(code) {
             <div style="font-size:10px;color:var(--text3);">PRIX</div>
             <div style="font-family:var(--mono);font-weight:700;
                         color:var(--blue);">
-              ${fmtPrix(produit.prix)}
+              ${fmtPrix(produitLocal.prix)}
             </div>
           </div>
         </div>
         <div style="display:flex;gap:8px;">
-          <button onclick="scannerEntree('${produit.id}')"
+          <button onclick="scannerEntree('${produitLocal.id}')"
                   class="btn btn-success" style="flex:1;">📥 Entrée</button>
-          <button onclick="scannerSortie('${produit.id}')"
-                  class="btn btn-danger"  style="flex:1;">📤 Sortie</button>
-          <button onclick="scannerVoirProduit('${produit.id}')"
-                  class="btn btn-ghost"   style="flex:1;">👁️ Voir</button>
+          <button onclick="scannerSortie('${produitLocal.id}')"
+                  class="btn btn-danger" style="flex:1;">📤 Sortie</button>
+          <button onclick="scannerVoirProduit('${produitLocal.id}')"
+                  class="btn btn-ghost" style="flex:1;">👁️ Voir</button>
         </div>
       </div>`;
-
     arreterScanner();
+    return;
+  }
 
-  } else {
-    resultEl.innerHTML = `
-      <div>
-        <div style="font-size:24px;margin-bottom:8px;">🔍</div>
-        <div style="color:var(--text2);margin-bottom:4px;">
-          Code : <b style="font-family:var(--mono);">${code}</b>
-        </div>
-        <div style="font-size:12px;color:var(--text3);margin-bottom:12px;">
-          Aucun produit trouvé avec cette référence
-        </div>
+  // 2. Rechercher sur Open Food Facts
+  try {
+    const response = await fetch(
+      `https://world.openfoodfacts.org/api/v0/product/${code}.json`
+    );
+    const data = await response.json();
+
+    if (data.status === 1 && data.product) {
+      const p    = data.product;
+      const nom  = p.product_name_fr || p.product_name || p.abbreviated_product_name || 'Produit inconnu';
+      const marque = p.brands || '';
+      const cat  = p.categories_tags?.[0]?.replace('en:', '') || 'Alimentaire';
+      const img  = p.image_front_small_url || '';
+      const qte  = p.quantity || '';
+
+      resultEl.innerHTML = `
+        <div style="text-align:left;">
+          <div style="background:var(--blue-glow);border:1px solid rgba(59,130,246,0.3);
+                      border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;
+                      font-size:12px;color:var(--blue);">
+            🌐 Produit trouvé sur Open Food Facts
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
+            ${img
+              ? `<img src="${img}" style="width:60px;height:60px;
+                         object-fit:contain;border-radius:var(--rsm);
+                         background:#fff;padding:4px;flex-shrink:0;"/>`
+              : `<div style="width:60px;height:60px;background:var(--bg4);
+                             border-radius:var(--rsm);display:flex;
+                             align-items:center;justify-content:center;
+                             font-size:24px;flex-shrink:0;">🥩</div>`}
+            <div style="flex:1;">
+              <div style="font-size:14px;font-weight:700;color:var(--text);
+                          margin-bottom:3px;">${nom}</div>
+              ${marque
+                ? `<div style="font-size:12px;color:var(--text2);">
+                     🏷️ ${marque}
+                   </div>`
+                : ''}
+              ${qte
+                ? `<div style="font-size:12px;color:var(--text2);">
+                     📦 ${qte}
+                   </div>`
+                : ''}
+              <div style="font-size:11px;color:var(--text3);
+                          font-family:var(--mono);margin-top:3px;">
+                Code: ${code}
+              </div>
+            </div>
+          </div>
+          <button onclick="scannerCreerDepuisAPI('${code}', \`${nom.replace(/`/g,"'")}\`, '${marque}', '${qte}')"
+                  class="btn btn-primary"
+                  style="width:100%;margin-bottom:8px;">
+            ➕ Ajouter ce produit à StockPro
+          </button>
+          <button onclick="demarrerScanner()"
+                  class="btn btn-ghost"
+                  style="width:100%;font-size:12px;">
+            📷 Scanner un autre produit
+          </button>
+        </div>`;
+
+      arreterScanner();
+      return;
+    }
+  } catch(e) {
+    console.log('Open Food Facts erreur:', e);
+  }
+
+  // 3. Produit non trouvé
+  resultEl.innerHTML = `
+    <div style="text-align:center;">
+      <div style="font-size:32px;margin-bottom:8px;">🔍</div>
+      <div style="color:var(--text2);margin-bottom:4px;font-size:13px;">
+        Code : <b style="font-family:var(--mono);">${code}</b>
+      </div>
+      <div style="font-size:12px;color:var(--text3);margin-bottom:16px;">
+        Aucun produit trouvé dans StockPro ni sur internet
+      </div>
+      <div style="display:flex;gap:8px;justify-content:center;">
         <button onclick="scannerNouveauProduit('${code}')"
                 class="btn btn-primary btn-sm">
-          + Créer ce produit avec ce code
+          ➕ Créer manuellement
         </button>
-      </div>`;
+        <button onclick="demarrerScanner()"
+                class="btn btn-ghost btn-sm">
+          📷 Rescanner
+        </button>
+      </div>
+    </div>`;
+}
+
+// ===== CRÉER PRODUIT DEPUIS API =====
+function scannerCreerDepuisAPI(code, nom, marque, qte) {
+  closeScanner();
+
+  // Préparer le formulaire avec les infos récupérées
+  populateFourniSelect();
+  populateCategoriesSelect('p-cat');
+  resetProduitForm();
+
+  // Remplir automatiquement les champs
+  document.getElementById('p-nom').value  =
+    marque ? `${nom} — ${marque}` : nom;
+  document.getElementById('p-ref').value  = code;
+  document.getElementById('p-unite').value =
+    qte ? qte.replace(/[0-9]/g, '').trim() : '';
+  document.getElementById('p-stock').value = '0';
+  document.getElementById('p-seuil').value = '5';
+
+  // Sélectionner Alimentaire par défaut
+  const catSelect = document.getElementById('p-cat');
+  for (let opt of catSelect.options) {
+    if (opt.value === 'Alimentaire') {
+      opt.selected = true;
+      break;
+    }
   }
+
+  document.getElementById('modal-produit-title').textContent =
+    '➕ Nouveau produit (scanné)';
+
+  openModal('modal-produit');
+  toast(`Infos récupérées pour "${nom}" ✓`);
 }
 
 function scannerEntree(id) {
