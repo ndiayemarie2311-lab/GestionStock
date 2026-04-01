@@ -1714,13 +1714,14 @@ window.addEventListener('appinstalled', () => {
 });
 
 // ===== SCANNER CODE-BARRES =====
-let scannerActif = false;
-let quaggaListenerActif = false;
+// ===== SCANNER CODE-BARRES =====
+let scannerActif  = false;
+let zxingReader   = null;
 
 function openScanner() {
   document.getElementById('modal-scanner').classList.add('open');
   document.getElementById('scanner-result').innerHTML =
-    'Pointez la caméra vers un code-barres...';
+    '<div style="text-align:center;color:var(--text2);font-size:13px;">Pointez la caméra vers un code-barres...</div>';
   document.getElementById('scanner-manual-input').value = '';
   demarrerScanner();
 }
@@ -1733,105 +1734,44 @@ function closeScanner() {
 function demarrerScanner() {
   if (scannerActif) return;
 
-  Quagga.init({
-    inputStream: {
-      name      : 'Live',
-      type      : 'LiveStream',
-      target    : document.getElementById('scanner-viewport'),
-      constraints: {
-        facingMode: 'environment',
-        width     : { min: 640 },
-        height    : { min: 280 }
+  try {
+    const codeReader = new ZXing.BrowserMultiFormatReader();
+    zxingReader      = codeReader;
+
+    codeReader.decodeFromVideoDevice(null, 'scanner-video', (result, err) => {
+      if (result) {
+        const code = result.getText();
+        if (!code) return;
+
+        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+        arreterScanner();
+
+        document.getElementById('scanner-result').innerHTML =
+          `<span style="color:var(--green);">
+             ✓ Code détecté : <b style="font-family:var(--mono);">${code}</b>
+           </span>`;
+
+        setTimeout(() => rechercherCodeBarre(code), 300);
       }
-    },
-    decoder: {
-      readers: [
-        'ean_reader',
-        'ean_8_reader',
-        'code_128_reader',
-        'code_39_reader',
-        'upc_reader',
-        'upc_e_reader'
-      ]
-    },
-    locate      : true,
-    numOfWorkers: 2,
-    frequency   : 10
-  }, err => {
-    if (err) {
-      console.error('Scanner erreur:', err);
-      document.getElementById('scanner-result').innerHTML =
-        `<span style="color:var(--red);">
-           ❌ Caméra non accessible.<br/>
-           <small>Utilisez la saisie manuelle ci-dessous.</small>
-         </span>`;
-      return;
-    }
-    Quagga.start();
+    });
+
     scannerActif = true;
 
-    // Enregistrer le listener UNE SEULE FOIS
-    if (!quaggaListenerActif) {
-      Quagga.onDetected(onCodeDetecte);
-      quaggaListenerActif = true;
-    }
-  });
-}
-
-function onCodeDetecte(data) {
-  // Filtre de confiance — ignorer les lectures peu fiables
- const _detectionBuffer = {};
-
-function onCodeDetecte(data) {
-  const result = data.codeResult;
-  if (!result || !result.code) return;
-
-  const code = result.code;
-
-  // Compter les détections consécutives du même code
-  _detectionBuffer[code] = (_detectionBuffer[code] || 0) + 1;
-
-  // Réinitialiser les autres codes
-  Object.keys(_detectionBuffer).forEach(k => {
-    if (k !== code) _detectionBuffer[k] = 0;
-  });
-
-  // Accepter seulement après 5 détections du même code
-  if (_detectionBuffer[code] < 5) return;
-
-  // Vérifier la confiance
-  const erreurs = (result.decodedCodes || [])
-    .filter(c => c.error !== undefined)
-    .map(c => c.error);
-
-  const moyenneErreur = erreurs.length
-    ? erreurs.reduce((a, b) => a + b, 0) / erreurs.length
-    : 1;
-
-  if (moyenneErreur > 0.25) return;
-
-  // Code validé !
-  Object.keys(_detectionBuffer).forEach(k => delete _detectionBuffer[k]);
-
-  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-
-  document.getElementById('scanner-result').innerHTML =
-    `<span style="color:var(--green);">
-       ✓ Code détecté : <b style="font-family:var(--mono);">${code}</b>
-     </span>`;
-
-  arreterScanner();
-  setTimeout(() => rechercherCodeBarre(code), 300);
-}
+  } catch(e) {
+    console.error('Scanner erreur:', e);
+    document.getElementById('scanner-result').innerHTML =
+      `<div style="color:var(--red);text-align:center;">
+         ❌ Caméra non accessible.<br/>
+         <small>Utilisez la saisie manuelle ci-dessous.</small>
+       </div>`;
+  }
 }
 
 function arreterScanner() {
-  if (!scannerActif) return;
-  try {
-    Quagga.offDetected(onCodeDetecte);
-    quaggaListenerActif = false;
-    Quagga.stop();
-  } catch(e) {}
+  if (zxingReader) {
+    try { zxingReader.reset(); } catch(e) {}
+    zxingReader  = null;
+  }
   scannerActif = false;
 }
 
@@ -1841,16 +1781,15 @@ async function rechercherCodeBarre(code) {
 
   const resultEl = document.getElementById('scanner-result');
 
-  // Afficher chargement
   resultEl.innerHTML = `
-    <div style="text-align:center;padding:20px;">
+    <div style="text-align:center;padding:16px;">
       <div style="font-size:24px;margin-bottom:8px;">⏳</div>
       <div style="color:var(--text2);font-size:13px;">
-        Recherche du produit <b style="font-family:var(--mono);">${code}</b>...
+        Recherche : <b style="font-family:var(--mono);">${code}</b>
       </div>
     </div>`;
 
-  // 1. Chercher dans StockPro d'abord
+  // 1. Chercher dans StockPro
   const produitLocal = state.produits.find(p =>
     (p.ref || '').toLowerCase() === code.toLowerCase()
   );
@@ -1858,40 +1797,32 @@ async function rechercherCodeBarre(code) {
   if (produitLocal) {
     const s = stockStatut(produitLocal);
     resultEl.innerHTML = `
-      <div style="text-align:left;">
+      <div>
         <div style="background:var(--green-glow);border:1px solid rgba(34,197,94,0.3);
                     border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;
                     font-size:12px;color:var(--green);">
           ✅ Produit trouvé dans StockPro
         </div>
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;">
           <div style="font-size:24px;">${catEmoji(produitLocal.cat)}</div>
-          <div>
-            <div style="font-size:14px;font-weight:700;color:var(--text);">
-              ${produitLocal.nom}
-            </div>
+          <div style="flex:1;">
+            <div style="font-size:14px;font-weight:700;">${produitLocal.nom}</div>
             <div style="font-size:11px;color:var(--text2);">
               Réf: ${produitLocal.ref || '—'} · ${produitLocal.cat}
             </div>
           </div>
-          <span class="badge ${s.cls}" style="margin-left:auto;">
-            ${s.label}
-          </span>
+          <span class="badge ${s.cls}">${s.label}</span>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;
-                    gap:8px;margin-bottom:12px;">
-          <div style="background:var(--bg4);border-radius:var(--rsm);
-                      padding:8px 12px;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+          <div style="background:var(--bg4);border-radius:var(--rsm);padding:8px 12px;">
             <div style="font-size:10px;color:var(--text3);">STOCK</div>
             <div style="font-family:var(--mono);font-weight:700;">
               ${produitLocal.stock} ${produitLocal.unite || ''}
             </div>
           </div>
-          <div style="background:var(--bg4);border-radius:var(--rsm);
-                      padding:8px 12px;">
+          <div style="background:var(--bg4);border-radius:var(--rsm);padding:8px 12px;">
             <div style="font-size:10px;color:var(--text3);">PRIX</div>
-            <div style="font-family:var(--mono);font-weight:700;
-                        color:var(--blue);">
+            <div style="font-family:var(--mono);font-weight:700;color:var(--blue);">
               ${fmtPrix(produitLocal.prix)}
             </div>
           </div>
@@ -1905,16 +1836,14 @@ async function rechercherCodeBarre(code) {
                   class="btn btn-ghost" style="flex:1;">👁️ Voir</button>
         </div>
       </div>`;
-    arreterScanner();
     return;
   }
 
-  // 2. Rechercher sur Open Food Facts avec timeout
+  // 2. Open Food Facts avec timeout
   try {
     const controller = new AbortController();
     const timeout    = setTimeout(() => controller.abort(), 4000);
-
-    const response = await fetch(
+    const response   = await fetch(
       `https://world.openfoodfacts.org/api/v0/product/${code}.json`,
       { signal: controller.signal }
     );
@@ -1922,40 +1851,40 @@ async function rechercherCodeBarre(code) {
     const data = await response.json();
 
     if (data.status === 1 && data.product) {
-      const p      = data.product;
-      const nom    = p.product_name_fr || p.product_name || '';
-      const marque = p.brands   || '';
-      const img    = p.image_front_small_url || '';
-      const qte    = p.quantity || '';
+      const pr     = data.product;
+      const nom    = pr.product_name_fr || pr.product_name || '';
+      const marque = pr.brands || '';
+      const img    = pr.image_front_small_url || '';
+      const qte    = pr.quantity || '';
 
       if (nom) {
+        // Stocker les infos pour le bouton
+        window._scannerProduit = { code, nom, marque, qte };
+
         resultEl.innerHTML = `
-          <div style="text-align:left;">
+          <div>
             <div style="background:var(--blue-glow);border:1px solid rgba(59,130,246,0.3);
                         border-radius:var(--rsm);padding:8px 12px;margin-bottom:10px;
                         font-size:12px;color:var(--blue);">
-              🌐 Produit trouvé sur Open Food Facts
+              🌐 Trouvé sur Open Food Facts
             </div>
             <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px;">
               ${img
-                ? `<img src="${img}" style="width:60px;height:60px;
-                           object-fit:contain;border-radius:var(--rsm);
-                           background:#fff;padding:4px;flex-shrink:0;"/>`
+                ? `<img src="${img}" style="width:60px;height:60px;object-fit:contain;
+                           border-radius:var(--rsm);background:#fff;padding:4px;flex-shrink:0;"/>`
                 : `<div style="width:60px;height:60px;background:var(--bg4);
-                               border-radius:var(--rsm);display:flex;
-                               align-items:center;justify-content:center;
-                               font-size:24px;flex-shrink:0;">📦</div>`}
+                               border-radius:var(--rsm);display:flex;align-items:center;
+                               justify-content:center;font-size:24px;flex-shrink:0;">📦</div>`}
               <div style="flex:1;">
-                <div style="font-size:14px;font-weight:700;color:var(--text);
-                            margin-bottom:3px;">${nom}</div>
+                <div style="font-size:14px;font-weight:700;margin-bottom:3px;">${nom}</div>
                 ${marque ? `<div style="font-size:12px;color:var(--text2);">🏷️ ${marque}</div>` : ''}
-                ${qte    ? `<div style="font-size:12px;color:var(--text2);">📦 ${qte}</div>`    : ''}
+                ${qte    ? `<div style="font-size:12px;color:var(--text2);">📦 ${qte}</div>` : ''}
                 <div style="font-size:11px;color:var(--text3);font-family:var(--mono);margin-top:3px;">
                   Code: ${code}
                 </div>
               </div>
             </div>
-            <button onclick="scannerCreerDepuisAPI('${code}', \`${nom.replace(/`/g,"'")}\`, '${marque}', '${qte}')"
+            <button onclick="scannerCreerDepuisCache()"
                     class="btn btn-primary" style="width:100%;margin-bottom:8px;">
               ➕ Ajouter ce produit à StockPro
             </button>
@@ -1964,40 +1893,75 @@ async function rechercherCodeBarre(code) {
               📷 Scanner un autre produit
             </button>
           </div>`;
-        arreterScanner();
         return;
       }
     }
   } catch(e) {
-    // Timeout ou erreur réseau — on continue vers création manuelle
-    console.log('Open Food Facts non disponible:', e.message);
+    console.log('Open Food Facts:', e.message);
   }
 
-  // 3. Produit non trouvé — ouvrir directement le formulaire
+  // 3. Non trouvé — proposer création
+  window._scannerProduit = { code, nom: code, marque: '', qte: '' };
   resultEl.innerHTML = `
     <div style="text-align:center;padding:8px;">
       <div style="font-size:28px;margin-bottom:8px;">📦</div>
-      <div style="color:var(--text);font-weight:600;margin-bottom:4px;font-size:14px;">
+      <div style="font-weight:600;margin-bottom:4px;font-size:14px;">
         Nouveau produit détecté
       </div>
       <div style="font-size:12px;color:var(--text3);margin-bottom:4px;">
         Code : <b style="font-family:var(--mono);color:var(--blue);">${code}</b>
       </div>
       <div style="font-size:12px;color:var(--text2);margin-bottom:16px;">
-        Ce produit n'existe pas encore dans StockPro.<br/>
-        Voulez-vous le créer ?
+        Ce produit n'existe pas encore dans StockPro.
       </div>
       <div style="display:flex;gap:8px;justify-content:center;">
-        <button onclick="scannerNouveauProduit('${code}')"
-                class="btn btn-primary">
-          ➕ Créer ce produit
-        </button>
+        <button onclick="scannerCreerDepuisCache()"
+                class="btn btn-primary">➕ Créer ce produit</button>
         <button onclick="demarrerScanner()"
-                class="btn btn-ghost btn-sm">
-          📷 Rescanner
-        </button>
+                class="btn btn-ghost btn-sm">📷 Rescanner</button>
       </div>
     </div>`;
+}
+
+// ===== CRÉER DEPUIS CACHE =====
+function scannerCreerDepuisCache() {
+  const info = window._scannerProduit;
+  if (!info) return;
+  closeScanner();
+  populateFourniSelect();
+  populateCategoriesSelect('p-cat');
+  resetProduitForm();
+
+  document.getElementById('p-nom').value   = info.marque
+    ? `${info.nom} — ${info.marque}` : info.nom;
+  document.getElementById('p-ref').value   = info.code;
+  document.getElementById('p-stock').value = '0';
+  document.getElementById('p-seuil').value = '5';
+  document.getElementById('p-prix').value  = '0';
+
+  if (info.qte) {
+    document.getElementById('p-unite').value =
+      info.qte.replace(/[0-9.,]/g, '').trim();
+  }
+
+  // Sélectionner Alimentaire par défaut
+  const catSelect = document.getElementById('p-cat');
+  for (let opt of catSelect.options) {
+    if (opt.value === 'Alimentaire') { opt.selected = true; break; }
+  }
+
+  document.getElementById('modal-produit-title').textContent =
+    `➕ Nouveau produit — Code: ${info.code}`;
+
+  openModal('modal-produit');
+  setTimeout(() => {
+    const nomInput = document.getElementById('p-nom');
+    nomInput.focus();
+    nomInput.select();
+  }, 150);
+
+  window._scannerProduit = null;
+}
 
 function scannerEntree(id) {
   closeScanner();
@@ -2031,32 +1995,6 @@ function scannerVoirProduit(id) {
 }
 
 function scannerNouveauProduit(code) {
-  closeScanner();
-  populateFourniSelect();
-  populateCategoriesSelect('p-cat');
-  resetProduitForm();
-
-  // Pré-remplir la référence avec le code scanné
-  document.getElementById('p-ref').value   = code;
-
-  // Pré-remplir le nom avec le code (modifiable par l'utilisateur)
-  document.getElementById('p-nom').value   = code;
-
-  // Valeurs par défaut utiles
-  document.getElementById('p-stock').value = '0';
-  document.getElementById('p-seuil').value = '5';
-  document.getElementById('p-prix').value  = '0';
-
-  document.getElementById('modal-produit-title').textContent =
-    `Nouveau produit — Code: ${code}`;
-
-  // Mettre le focus sur le nom pour que l'utilisateur
-  // puisse le modifier immédiatement
-  openModal('modal-produit');
-  setTimeout(() => {
-    const nomInput = document.getElementById('p-nom');
-    nomInput.focus();
-    nomInput.select(); // Sélectionner le texte pour faciliter la modification
-  }, 150);
-  }
+  window._scannerProduit = { code, nom: code, marque: '', qte: '' };
+  scannerCreerDepuisCache();
 }
