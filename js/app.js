@@ -1715,6 +1715,7 @@ window.addEventListener('appinstalled', () => {
 
 // ===== SCANNER CODE-BARRES =====
 let scannerActif = false;
+let quaggaListenerActif = false;
 
 function openScanner() {
   document.getElementById('modal-scanner').classList.add('open');
@@ -1738,7 +1739,7 @@ function demarrerScanner() {
       type      : 'LiveStream',
       target    : document.getElementById('scanner-viewport'),
       constraints: {
-        facingMode: 'environment', // Caméra arrière
+        facingMode: 'environment',
         width     : { min: 640 },
         height    : { min: 280 }
       }
@@ -1753,7 +1754,7 @@ function demarrerScanner() {
         'upc_e_reader'
       ]
     },
-    locate  : true,
+    locate      : true,
     numOfWorkers: 2,
     frequency   : 10
   }, err => {
@@ -1768,22 +1769,47 @@ function demarrerScanner() {
     }
     Quagga.start();
     scannerActif = true;
-  });
 
-  // Écouter les détections
-  Quagga.onDetected(data => {
-    const code = data.codeResult.code;
-    if (code) {
-      // Vibration sur mobile
-      if (navigator.vibrate) navigator.vibrate(200);
-      rechercherCodeBarre(code);
+    // Enregistrer le listener UNE SEULE FOIS
+    if (!quaggaListenerActif) {
+      Quagga.onDetected(onCodeDetecte);
+      quaggaListenerActif = true;
     }
   });
+}
+
+function onCodeDetecte(data) {
+  // Filtre de confiance — ignorer les lectures peu fiables
+  const result = data.codeResult;
+  if (!result || !result.code) return;
+
+  // Vérifier que la majorité des decodeurs sont d'accord
+  const erreurs = result.decodedCodes
+    .filter(c => c.error !== undefined)
+    .map(c => c.error);
+
+  const moyenneErreur = erreurs.length
+    ? erreurs.reduce((a, b) => a + b, 0) / erreurs.length
+    : 1;
+
+  // Seulement accepter si confiance > 70%
+  if (moyenneErreur > 0.3) return;
+
+  const code = result.code;
+  if (navigator.vibrate) navigator.vibrate(200);
+
+  document.getElementById('scanner-result').innerHTML =
+    `<span style="color:var(--green);">✓ Code détecté : <b style="font-family:var(--mono);">${code}</b></span>`;
+
+  arreterScanner();
+  setTimeout(() => rechercherCodeBarre(code), 300);
 }
 
 function arreterScanner() {
   if (!scannerActif) return;
   try {
+    Quagga.offDetected(onCodeDetecte);
+    quaggaListenerActif = false;
     Quagga.stop();
   } catch(e) {}
   scannerActif = false;
@@ -1793,10 +1819,13 @@ function rechercherCodeBarre(code) {
   if (!code || code.trim() === '') return;
   code = code.trim();
 
-  // Chercher le produit par référence
+  // Chercher le produit par référence OU par nom partiel
   const produit = state.produits.find(p =>
-    (p.ref || '').toLowerCase() === code.toLowerCase() ||
-    (p.nom || '').toLowerCase() === code.toLowerCase()
+    (p.ref || '').toLowerCase() === code.toLowerCase()
+  ) || state.produits.find(p =>
+    (p.nom || '').toLowerCase().includes(code.toLowerCase())
+  ) || state.produits.find(p =>
+    (p.ref || '').toLowerCase().includes(code.toLowerCase())
   );
 
   const resultEl = document.getElementById('scanner-result');
@@ -1840,18 +1869,14 @@ function rechercherCodeBarre(code) {
         </div>
         <div style="display:flex;gap:8px;">
           <button onclick="scannerEntree('${produit.id}')"
-                  class="btn btn-success"
-                  style="flex:1;">📥 Entrée</button>
+                  class="btn btn-success" style="flex:1;">📥 Entrée</button>
           <button onclick="scannerSortie('${produit.id}')"
-                  class="btn btn-danger"
-                  style="flex:1;">📤 Sortie</button>
+                  class="btn btn-danger"  style="flex:1;">📤 Sortie</button>
           <button onclick="scannerVoirProduit('${produit.id}')"
-                  class="btn btn-ghost"
-                  style="flex:1;">👁️ Voir</button>
+                  class="btn btn-ghost"   style="flex:1;">👁️ Voir</button>
         </div>
       </div>`;
 
-    // Arrêter le scanner après détection
     arreterScanner();
 
   } else {
@@ -1866,7 +1891,7 @@ function rechercherCodeBarre(code) {
         </div>
         <button onclick="scannerNouveauProduit('${code}')"
                 class="btn btn-primary btn-sm">
-          + Créer ce produit
+          + Créer ce produit avec ce code
         </button>
       </div>`;
   }
@@ -1908,8 +1933,27 @@ function scannerNouveauProduit(code) {
   populateFourniSelect();
   populateCategoriesSelect('p-cat');
   resetProduitForm();
-  document.getElementById('p-ref').value = code;
+
+  // Pré-remplir la référence avec le code scanné
+  document.getElementById('p-ref').value   = code;
+
+  // Pré-remplir le nom avec le code (modifiable par l'utilisateur)
+  document.getElementById('p-nom').value   = code;
+
+  // Valeurs par défaut utiles
+  document.getElementById('p-stock').value = '0';
+  document.getElementById('p-seuil').value = '5';
+  document.getElementById('p-prix').value  = '0';
+
   document.getElementById('modal-produit-title').textContent =
-    'Nouveau produit (code scanné)';
+    `Nouveau produit — Code: ${code}`;
+
+  // Mettre le focus sur le nom pour que l'utilisateur
+  // puisse le modifier immédiatement
   openModal('modal-produit');
+  setTimeout(() => {
+    const nomInput = document.getElementById('p-nom');
+    nomInput.focus();
+    nomInput.select(); // Sélectionner le texte pour faciliter la modification
+  }, 150);
 }
