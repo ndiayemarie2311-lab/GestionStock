@@ -1093,22 +1093,60 @@ function demarrerScanner() {
     const codeReader = new ZXing.BrowserMultiFormatReader();
     zxingReader      = codeReader;
 
-    codeReader.decodeFromVideoDevice(null, 'scanner-video', (result, err) => {
-      if (result) {
-        const code = result.getText();
-        if (!code) return;
-        if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
-        arreterScanner();
+    // Lister les caméras disponibles
+    ZXing.BrowserMultiFormatReader.listVideoInputDevices().then(devices => {
+      if (!devices || devices.length === 0) {
         document.getElementById('scanner-result').innerHTML =
-          `<span style="color:var(--green);">✓ Code détecté : <b style="font-family:var(--mono);">${code}</b></span>`;
-        setTimeout(() => rechercherCodeBarre(code), 300);
+          `<div style="color:var(--red);text-align:center;">
+             ❌ Aucune caméra détectée.<br/>
+             <small>Utilisez la saisie manuelle ci-dessous.</small>
+           </div>`;
+        return;
       }
+
+      // Prendre la caméra arrière si disponible
+      const camera = devices.find(d =>
+        d.label.toLowerCase().includes('back') ||
+        d.label.toLowerCase().includes('rear') ||
+        d.label.toLowerCase().includes('arrière') ||
+        d.label.toLowerCase().includes('environment')
+      ) || devices[devices.length - 1];
+
+      codeReader.decodeFromVideoDevice(
+        camera.deviceId,
+        'scanner-video',
+        (result, err) => {
+          if (result) {
+            const code = result.getText();
+            if (!code) return;
+            if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+            arreterScanner();
+            document.getElementById('scanner-result').innerHTML =
+              `<span style="color:var(--green);">
+                 ✓ Code détecté : <b style="font-family:var(--mono);">${code}</b>
+               </span>`;
+            setTimeout(() => rechercherCodeBarre(code), 300);
+          }
+        }
+      );
+      scannerActif = true;
+
+    }).catch(err => {
+      console.error('Erreur caméras:', err);
+      document.getElementById('scanner-result').innerHTML =
+        `<div style="color:var(--red);text-align:center;">
+           ❌ Impossible d'accéder à la caméra.<br/>
+           <small>Utilisez la saisie manuelle ci-dessous.</small>
+         </div>`;
     });
-    scannerActif = true;
+
   } catch(e) {
     console.error('Scanner erreur:', e);
     document.getElementById('scanner-result').innerHTML =
-      `<div style="color:var(--red);text-align:center;">❌ Caméra non accessible.<br/><small>Utilisez la saisie manuelle ci-dessous.</small></div>`;
+      `<div style="color:var(--red);text-align:center;">
+         ❌ Caméra non accessible.<br/>
+         <small>Utilisez la saisie manuelle ci-dessous.</small>
+       </div>`;
   }
 }
 
